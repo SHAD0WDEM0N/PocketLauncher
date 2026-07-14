@@ -9,7 +9,7 @@ A console-inspired Android gaming frontend created for handheld gaming devices.
 </p>
 
 <p align="center">
-<img src="assets/upkite-studios-logo.jpg" width="150">
+<img src="assets/upkite-studios-logo.png" width="150">
 </p>
 
 <p align="center">
