@@ -348,7 +348,7 @@ Pocket Launcher aims to become a complete gaming frontend that feels like a dedi
 
 <p align="center">
 
-<img src="assets/upkite-studios-logo.png" width="100">
+<img src="assets/upkite-studios-logo.jpg" width="100">
 
 <br>
 
