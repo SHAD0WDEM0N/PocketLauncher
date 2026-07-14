@@ -5,8 +5,31 @@
 </p>
 
 <p align="center">
-A console-inspired Android frontend designed for gaming handhelds, emulation, and Android gaming.
+A console-inspired Android gaming frontend created for handheld gaming devices.
 </p>
+
+<p align="center">
+<img src="assets/upkite-studios-logo.jpg" width="150">
+</p>
+
+<p align="center">
+Created by <b>Upkite Studios</b>
+</p>
+
+---
+
+# 🏢 About Upkite Studios
+
+Pocket Launcher is developed by **Upkite Studios**, an independent mini game development studio focused on creating unique gaming experiences and tools.
+
+Upkite Studios was created with the goal of exploring:
+
+- Independent game development
+- Gaming-focused software
+- Creative digital experiences
+- Tools that enhance the way players interact with games
+
+Pocket Launcher represents the studio's first major utility project, designed to bring a console-style experience to Android gaming devices.
 
 ---
 
