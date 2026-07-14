@@ -69,10 +69,8 @@ The focus is:
 Inspired by:
 
 - Xbox 360 Dashboard
-- Original Xbox One Dashboard
-- Steam Big Picture Mode
+- Original Xbox Dashboard
 - PlayStation Vita UI
-- Nintendo Switch UI
 
 Pocket Launcher aims to feel less like an Android application and more like a dedicated gaming console.
 
