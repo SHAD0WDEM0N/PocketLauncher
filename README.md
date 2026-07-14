@@ -291,19 +291,70 @@ Long term goals:
 
 # 🤝 Contributions
 
-Pocket Launcher is currently a personal development project.
+Pocket Launcher is currently developed and maintained by **Upkite Studios**.
 
-Feedback, ideas and suggestions are welcome.
+As the project grows, contributions, suggestions, and feedback are welcome.
+
+Areas where contributions may be valuable:
+
+- UI/UX improvements
+- Android development
+- Emulator integration
+- Controller support
+- Device compatibility testing
+- Feature suggestions
+
+Before contributing, please ensure changes follow the design philosophy of Pocket Launcher:
+
+- Console-first experience
+- Controller-friendly navigation
+- Simple user experience
+- Clean and polished interface
 
 ---
 
 # 📜 License
 
-License information will be added once the project reaches a stable release.
+Pocket Launcher is an original project developed by:
+
+**Upkite Studios**
+
+Copyright © 2026 Upkite Studios.
+
+The Pocket Launcher name, branding, logos, artwork, and original assets are property of Upkite Studios.
+
+The project source code license will be defined when the project reaches a stable release.
+
+Third-party software, emulator applications, libraries, and assets remain the property of their respective owners.
+
+---
+
+# 🌐 About The Project
+
+Pocket Launcher is part of the Upkite Studios ecosystem.
+
+The goal is to create software that brings a more console-like experience to modern Android gaming hardware.
+
+Designed for:
+
+- Android handheld consoles
+- Foldable devices
+- Tablets
+- Gaming-focused Android systems
+
+Pocket Launcher aims to become a complete gaming frontend that feels like a dedicated console operating system rather than a traditional Android application.
 
 ---
 
 <p align="center">
+
+<img src="assets/upkite-studios-logo.png" width="100">
+
+<br>
+
+Developed by Upkite Studios
+
+<br>
 
 🎮 Pocket Launcher  
 "Your Android device. Your games. One console experience."
