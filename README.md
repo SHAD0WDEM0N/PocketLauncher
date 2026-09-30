@@ -1,362 +1,120 @@
-# 🎮 Pocket Launcher
+# PocketLauncher
 
-<p align="center">
-<img src="assets/pocket-launcher-logo.png" width="250">
-</p>
-
-<p align="center">
-A console-inspired Android gaming frontend created for handheld gaming devices.
-</p>
-
-<p align="center">
-<img src="assets/upkite-studios-logo.png" width="150">
-</p>
-
-<p align="center">
-Created by <b>Upkite Studios</b>
-</p>
+> **Android-first, controller-first retro gaming operating system.**  
+> Designed to feel like a dedicated handheld console, not a generic Android app.
 
 ---
 
-# 🏢 About Upkite Studios
+## 🎮 The Vision
 
-Pocket Launcher is developed by **Upkite Studios**, an independent mini game development studio focused on creating unique gaming experiences and tools.
+Most Android retro gaming frontends act as external application dispatchers—kicking you out into separate emulator apps, losing UI consistency, and cluttering the experience.
 
-Upkite Studios was created with the goal of exploring:
+**PocketLauncher** takes a console-first approach:
 
-- Independent game development
-- Gaming-focused software
-- Creative digital experiences
-- Tools that enhance the way players interact with games
+```
+PocketLauncher (Jetpack Compose UI)
+       │
+       ▼
+Native libretro Host Runtime (C++ / JNI)
+       │
+       ▼
+Direct libretro Cores (mGBA)
+       │
+       ▼
+Games (GB / GBC / GBA)
+```
 
-Pocket Launcher represents the studio's first major utility project, designed to bring a console-style experience to Android gaming devices.
-
----
-
-## 📖 About Pocket Launcher
-
-Pocket Launcher is an Android gaming frontend designed to transform Android handheld devices and tablets into a dedicated gaming console experience.
-
-The goal is simple:
-
-**Turn Android into a gaming operating system.**
-
-Instead of navigating through Android menus, app drawers, and multiple emulator applications, Pocket Launcher provides a unified console-style interface where users can access:
-
-- Retro games
-- Android games
-- Applications
-- Emulators
-- Gaming tools
-
-all from one controller-friendly dashboard.
+PocketLauncher handles the entire experience under one unified roof:
+- **Zero app switching**: Runs game emulation directly inside the host runtime.
+- **Unified state**: Save states, playtime tracking, game library management, and controller mapping remain integrated.
+- **Distraction-free**: MinUI / NextUI simplicity paired with Analogue OS-inspired presentation.
 
 ---
 
-# 🎯 Project Vision
+## 🎯 Target Hardware
 
-Current Android gaming frontends are extremely powerful, but Pocket Launcher aims to create a different experience.
-
-The focus is:
-
-🎮 Console-style navigation  
-🎮 Controller-first design  
-🎮 Touch-friendly interaction  
-🎮 Simple library management  
-🎮 Automatic emulator detection  
-🎮 A polished handheld gaming experience  
-
-Inspired by:
-
-- Xbox 360 Dashboard
-- Original Xbox Dashboard
-- PlayStation Vita UI
-
-Pocket Launcher aims to feel less like an Android application and more like a dedicated gaming console.
+Engineered and optimized for dedicated Android retro handhelds:
+- **Retroid Pocket G2**: Reference Android handheld hardware.
+- **Mangmi Pocket Air Y**: Low-overhead target ensuring maximum performance and battery longevity.
+- **Universal Android Handhelds & Controllers**: Retroid, Ayn, Anbernic, Logitech G Cloud, Razer Kishi, Backbone One, and Bluetooth gamepads.
 
 ---
 
-# ✨ Planned Features
+## 🕹️ First Systems & Core
 
-## 🏠 Console Dashboard
+The initial release targets the iconic Nintendo handheld trilogy using a single, unified high-performance core:
+- **Game Boy (GB)**
+- **Game Boy Color (GBC)**
+- **Game Boy Advance (GBA)**
+- **Engine Core**: `mGBA` libretro core
 
-A horizontal navigation system designed around controller input.
-
-Main sections:
-
-- Home
-- Retro
-- Android Games
-- Applications
-- Settings
-
-
-Navigation will support:
-
-✅ Touch input  
-✅ Swipe gestures  
-✅ Bluetooth controllers  
-✅ Handheld gaming devices  
+Future phases expand to SNES, Genesis, and PS1 once the core pipeline is perfected.
 
 ---
 
-# 🎮 Retro Game Management
+## ✨ Features
 
-Pocket Launcher will scan and organise retro libraries by system.
-
-Supported examples:
-
-- Game Boy
-- Game Boy Color
-- Game Boy Advance
-- NES
-- SNES
-- Nintendo 64
-- Nintendo DS
-- PlayStation
-- PSP
-- Dreamcast
-- GameCube
-- Arcade
-
-
-Instead of mixing ROM files together, users can assign folders to specific systems.
-
-Example:
-/ROMs
-├── GBA
-├── PSP
-├── PS1
-├── SNES
-
-
-Each system receives its own library.
+- **Console Operating System Feel**: Pure dark tones (`#0D0D0D`), warm amber accents (`#FFB300`), crisp status bar (clock, battery, Wi-Fi), and contextual bottom button legend (`A` Select, `B` Back, `X` Search, `Y` System).
+- **Controller-First Navigation**: 100% operable via physical D-pad, face buttons (A/B/X/Y), bumpers/triggers (L1/R1/L2/R2), and Start/Select. Zero touch required.
+- **Hardware Input Diagnostic**: Built-in visual hardware controller test screen displaying real-time button actuation, stick deflection, and keycodes.
+- **Native JNI Engine**: C++20 / C++17 foundation (`libpocketlauncher.so`) built with CMake and Android NDK for minimal input latency and high frame pacing consistency.
 
 ---
 
-# 🕹 Emulator Integration
+## 🚀 Releases
 
-Pocket Launcher aims to automatically detect installed emulators and provide simple configuration.
+### **PocketLauncher 0.2 (First New Model Release)**
+- **Phase 0: Foundation Architecture**
+  - Modern Jetpack Compose UI architecture with customizable Console Theme tokens.
+  - Native JNI bridge (`PocketEngine` / `native-lib.cpp`) with native runtime version reporting.
+  - `PocketInput` unified controller event routing and button mapping.
+  - Integrated Hardware Input Diagnostic Screen (`Settings -> Input Test`).
+  - Native build support for `arm64-v8a`, `armeabi-v7a`, and `x86_64`.
 
-Examples:
-
-| System | Emulator |
-|---|---|
-| PSP | PPSSPP |
-| PlayStation | DuckStation |
-| Nintendo DS | DraStic / melonDS |
-| Retro Systems | RetroArch cores |
-
-Future plans include:
-
-- Emulator detection
-- Per-system emulator assignment
-- RetroArch core selection
-- Automatic recommendations
+Download the standalone APK directly from the [Releases](https://github.com/SHAD0WDEM0N/PocketLauncher/releases) page.
 
 ---
 
-# 📱 Android Game Library
+## 🛠️ Building from Source
 
-Pocket Launcher also manages installed Android games.
+### Prerequisites
+- **Android Studio Ladybug (2024.2.1)** or newer
+- **JDK 17** or **JDK 21**
+- **Android SDK API 36** (minimum SDK 26 / Android 8.0)
+- **Android NDK** (r27 / r28)
+- **CMake 3.22.1+**
 
-Features:
+### Build Commands
+```bash
+# Clone the repository
+git clone https://github.com/SHAD0WDEM0N/PocketLauncher.git
+cd PocketLauncher
 
-- Detect installed games
-- Display artwork
-- Launch directly
-- Track recently played titles
+# Build Debug APK
+./gradlew assembleDebug
 
----
+# Build Release APK
+./gradlew assembleRelease
+```
 
-# 📦 Application Library
-
-A dedicated application section for installed apps.
-
-Useful for:
-
-- Streaming apps
-- Tools
-- Emulators
-- Gaming utilities
-
----
-
-# 🕒 Recently Played System
-
-The home dashboard will focus on recently used content.
-
-Displayed:
-
-- Last 5 played retro games
-- Last 5 Android games
-- Last 5 applications
-
-The goal is:
-
-"Start playing immediately."
+The compiled APK will be located in:
+`app/build/outputs/apk/debug/app-debug.apk`
 
 ---
 
-# 🎨 Design Philosophy
+## 🗺️ Roadmap
 
-Pocket Launcher uses a custom gaming-focused visual style.
-
-Design goals:
-
-- Dark theme
-- Strong contrast
-- Large tiles
-- Smooth animations
-- Console-style navigation
-- Controller-friendly focus system
-
-
-Colour inspiration:
-
-🔴 Retro gaming red accents  
-🔵 Deep console blues  
-⚫ Dark backgrounds  
+- [x] **Phase 0**: Foundation, JNI Bridge, Console Theme, Input Test & Mapping
+- [ ] **Phase 1**: Hardware Input Abstraction, custom remapping, stick deadzones
+- [ ] **Phase 2**: Libretro C Host integration & audio/video frame buffer pipe
+- [ ] **Phase 3**: mGBA core compilation & first in-launcher GBA boot
+- [ ] **Phase 4**: Game Library Scanner, ROM metadata, and cover art caching
+- [ ] **Phase 5**: Save state manager & playtime logging
+- [ ] **Phase 6**: Quick Resume & suspend state
 
 ---
 
-# 🛠 Current Development
+## 📄 License
 
-Pocket Launcher is currently in early development.
-
-Current progress:
-
-✅ Android application foundation  
-✅ Kotlin project setup  
-✅ Basic launcher interface  
-✅ App scanning  
-✅ Android game detection  
-✅ Retro ROM scanning foundation  
-✅ Controller support foundation  
-✅ Settings integration  
-✅ Custom branding started  
-
-
-Currently being developed:
-
-🚧 Console dashboard redesign  
-🚧 Emulator detection  
-🚧 RetroArch core management  
-🚧 Artwork system  
-🚧 Improved navigation  
-🚧 Full controller-first UI  
-
----
-
-# 📸 Screenshots
-
-Screenshots will be added as development progresses.
-
----
-
-# 💻 Technology
-
-Built with:
-
-- Kotlin
-- Android Studio
-- Jetpack Compose
-- Gradle
-
-
-Target devices:
-
-- Android handheld gaming devices
-- Foldable devices
-- Tablets
-- Android TV style systems
-
----
-
-# 🚀 Future Goals
-
-Long term goals:
-
-- Automatic setup wizard
-- Metadata scraping
-- Game artwork downloads
-- Save management
-- Cloud backup
-- Multiple controller layouts
-- Themes
-- Plugin support
-- Handheld manufacturer support
-
----
-
-# 🤝 Contributions
-
-Pocket Launcher is currently developed and maintained by **Upkite Studios**.
-
-As the project grows, contributions, suggestions, and feedback are welcome.
-
-Areas where contributions may be valuable:
-
-- UI/UX improvements
-- Android development
-- Emulator integration
-- Controller support
-- Device compatibility testing
-- Feature suggestions
-
-Before contributing, please ensure changes follow the design philosophy of Pocket Launcher:
-
-- Console-first experience
-- Controller-friendly navigation
-- Simple user experience
-- Clean and polished interface
-
----
-
-# 📜 License
-
-Pocket Launcher is an original project developed by:
-
-**Upkite Studios**
-
-Copyright © 2026 Upkite Studios.
-
-The Pocket Launcher name, branding, logos, artwork, and original assets are property of Upkite Studios.
-
-The project source code license will be defined when the project reaches a stable release.
-
-Third-party software, emulator applications, libraries, and assets remain the property of their respective owners.
-
----
-
-# 🌐 About The Project
-
-Pocket Launcher is part of the Upkite Studios ecosystem.
-
-The goal is to create software that brings a more console-like experience to modern Android gaming hardware.
-
-Designed for:
-
-- Android handheld consoles
-- Foldable devices
-- Tablets
-- Gaming-focused Android systems
-
-Pocket Launcher aims to become a complete gaming frontend that feels like a dedicated console operating system rather than a traditional Android application.
-
----
-
-<p align="center">
-
-<img src="assets/upkite-studios-logo.jpg" width="100">
-
-<br>
-
-Developed by Upkite Studios
-
-<br>
-
-🎮 Pocket Launcher  
-"Your Android device. Your games. One console experience."
-
-</p>
+GPL-3.0 License. See `LICENSE` for details.
+All libretro cores remain the intellectual property of their respective authors under their respective open-source licenses.
