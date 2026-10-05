@@ -6,6 +6,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
@@ -36,6 +38,8 @@ fun EmulationScreen(
     selectedStateSummary: String,
     onScreenMenuIconEnabled: Boolean,
     onMenuIconClick: () -> Unit,
+    onMenuItemClick: (Int) -> Unit,
+    onStateSlotChange: (Int) -> Unit,
 ) {
     Box(
         modifier = Modifier
@@ -131,15 +135,61 @@ fun EmulationScreen(
                 )
 
                 items.forEachIndexed { index, label ->
-                    Text(
-                        text = if (index == menuIndex) "›  $label" else "   $label",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = if (index == menuIndex) {
-                            MaterialTheme.colorScheme.onBackground
-                        } else {
-                            MaterialTheme.colorScheme.onBackground.copy(alpha = 0.58f)
-                        },
-                    )
+                    val selected = index == menuIndex
+
+                    if (menuPage == EmulationMenuPage.MAIN && index == 3) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(
+                                    if (selected) Color.White.copy(alpha = 0.08f)
+                                    else Color.Transparent
+                                )
+                                .padding(vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = "◀",
+                                modifier = Modifier
+                                    .clickable { onStateSlotChange(-1) }
+                                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onBackground,
+                            )
+                            Text(
+                                text = "State Slot   ${selectedStateSlot + 1} · $selectedStateSummary",
+                                modifier = Modifier.weight(1f),
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onBackground,
+                            )
+                            Text(
+                                text = "▶",
+                                modifier = Modifier
+                                    .clickable { onStateSlotChange(1) }
+                                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onBackground,
+                            )
+                        }
+                    } else {
+                        Text(
+                            text = if (selected) "›  $label" else "   $label",
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(
+                                    if (selected) Color.White.copy(alpha = 0.08f)
+                                    else Color.Transparent
+                                )
+                                .clickable { onMenuItemClick(index) }
+                                .padding(vertical = 6.dp),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = if (selected) {
+                                MaterialTheme.colorScheme.onBackground
+                            } else {
+                                MaterialTheme.colorScheme.onBackground.copy(alpha = 0.72f)
+                            },
+                        )
+                    }
                 }
 
                 if (menuStatus.isNotBlank()) {
