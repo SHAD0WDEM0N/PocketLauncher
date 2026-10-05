@@ -21,6 +21,8 @@ public:
     bool runFrame();
     bool loadSaveRam(const std::string& path);
     bool saveSaveRam(const std::string& path);
+    bool saveState(const std::string& path);
+    bool loadState(const std::string& path);
 
     bool isLoaded() const { return handle_ != nullptr; }
     bool isGameLoaded() const { return game_loaded_; }
@@ -75,6 +77,9 @@ private:
     using retro_run_t = void (*)();
     using retro_get_memory_data_t = void* (*)(unsigned);
     using retro_get_memory_size_t = size_t (*)(unsigned);
+    using retro_serialize_size_t = size_t (*)();
+    using retro_serialize_t = bool (*)(void*, size_t);
+    using retro_unserialize_t = bool (*)(const void*, size_t);
 
     retro_api_version_t retro_api_version_ = nullptr;
     retro_get_system_info_t retro_get_system_info_ = nullptr;
@@ -92,6 +97,9 @@ private:
     retro_run_t retro_run_ = nullptr;
     retro_get_memory_data_t retro_get_memory_data_ = nullptr;
     retro_get_memory_size_t retro_get_memory_size_ = nullptr;
+    retro_serialize_size_t retro_serialize_size_ = nullptr;
+    retro_serialize_t retro_serialize_ = nullptr;
+    retro_unserialize_t retro_unserialize_ = nullptr;
 
     template <typename T>
     bool bind(T& target, const char* symbol);
