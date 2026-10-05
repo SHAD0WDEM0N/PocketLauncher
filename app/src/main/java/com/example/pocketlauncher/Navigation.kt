@@ -5,7 +5,7 @@ import com.example.pocketlauncher.library.Platform
 import com.example.pocketlauncher.ui.home.HomeScreen
 import com.example.pocketlauncher.ui.input.InputTestScreen
 import com.example.pocketlauncher.ui.platform.PlatformScreen
-import com.example.pocketlauncher.ui.settings.EmulatorSettingsScreen
+import com.example.pocketlauncher.ui.settings.EmulatorSettingsScreen\nimport com.example.pocketlauncher.ui.settings.CoreDownloadsScreen
 import com.example.pocketlauncher.ui.settings.FrontEndSettingsScreen
 import com.example.pocketlauncher.ui.settings.SettingsScreen
 import com.example.pocketlauncher.ui.settings.SystemManagerScreen
@@ -61,6 +61,12 @@ fun MainNavigation(
         Screen.SYSTEM_MANAGER -> SystemManagerScreen(
             selectedIndex = uiState.menuIndex,
             enabledPlatforms = uiState.enabledPlatforms,
+        )
+
+        Screen.CORE_DOWNLOADS -> CoreDownloadsScreen(
+            installed = uiState.coreInstalled,
+            downloading = uiState.coreDownloading,
+            status = uiState.coreStatus,
         )
 
         Screen.INPUT_TEST -> InputTestScreen(
