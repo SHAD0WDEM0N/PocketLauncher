@@ -143,6 +143,7 @@ bool CoreLoader::loadGame(const std::string& romPath) {
     retro_system_av_info av{};
     retro_get_system_av_info_(&av);
     audio_sample_rate_ = av.timing.sample_rate;
+    video_fps_ = av.timing.fps > 1.0 ? av.timing.fps : 60.0;
     LOGI("Game loaded. Base geometry: %ux%u @ %.3f fps / %.1f Hz audio",
          av.geometry.base_width, av.geometry.base_height, av.timing.fps, av.timing.sample_rate);
     return true;
@@ -158,6 +159,7 @@ void CoreLoader::unloadGame() {
         audio_pcm_.clear();
     }
     audio_sample_rate_ = 0.0;
+    video_fps_ = 60.0;
     std::lock_guard<std::mutex> lock(frame_mutex_);
     frame_rgba_.clear();
     frame_width_ = 0;
@@ -299,6 +301,10 @@ void CoreLoader::setInputMask(uint32_t mask) {
 
 double CoreLoader::audioSampleRate() const {
     return audio_sample_rate_;
+}
+
+double CoreLoader::videoFps() const {
+    return video_fps_;
 }
 
 std::vector<int16_t> CoreLoader::drainAudio() {
