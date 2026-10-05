@@ -6,13 +6,6 @@ import androidx.documentfile.provider.DocumentFile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-/**
- * Scans one user-selected tree for ROMs belonging to a platform.
- *
- * Phase 1 intentionally scans the selected folder itself (not every nested
- * sub-folder). Recursive/multi-folder libraries can be added after the basic
- * workflow is proven on the handheld test devices.
- */
 class RomScanner(
     private val context: Context,
 ) {
@@ -35,7 +28,7 @@ class RomScanner(
                     .mapNotNull { file ->
                         val fileName = file.name ?: return@mapNotNull null
                         GameEntry(
-                            displayName = fileName.substringBeforeLast('.'),
+                            displayName = RomNameCleaner.clean(fileName),
                             fileName = fileName,
                             uri = file.uri.toString(),
                             platform = platform,
