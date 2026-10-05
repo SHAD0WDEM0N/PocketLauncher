@@ -478,8 +478,26 @@ class MainViewModel(
                     }
                     true
                 }
-                PocketButton.A, PocketButton.LEFT, PocketButton.RIGHT -> {
-                    activateEmulationMenuItem()
+                PocketButton.LEFT -> {
+                    if (state.emulationMenuPage == EmulationMenuPage.MAIN && state.emulationMenuIndex == 3) {
+                        cycleStateSlot(-1)
+                    } else {
+                        activateEmulationMenuItem()
+                    }
+                    true
+                }
+                PocketButton.RIGHT -> {
+                    if (state.emulationMenuPage == EmulationMenuPage.MAIN && state.emulationMenuIndex == 3) {
+                        cycleStateSlot(1)
+                    } else {
+                        activateEmulationMenuItem()
+                    }
+                    true
+                }
+                PocketButton.A -> {
+                    if (!(state.emulationMenuPage == EmulationMenuPage.MAIN && state.emulationMenuIndex == 3)) {
+                        activateEmulationMenuItem()
+                    }
                     true
                 }
                 PocketButton.B -> {
@@ -657,9 +675,10 @@ class MainViewModel(
         }
     }
 
-    private fun cycleStateSlot() {
+    private fun cycleStateSlot(delta: Int) {
         val game = activeGame ?: return
-        val next = (_uiState.value.selectedStateSlot + 1) % 3
+        val current = _uiState.value.selectedStateSlot
+        val next = (current + delta + 3) % 3
         _uiState.update {
             it.copy(
                 selectedStateSlot = next,
