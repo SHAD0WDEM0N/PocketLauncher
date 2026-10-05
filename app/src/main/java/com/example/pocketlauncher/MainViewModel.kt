@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import java.util.concurrent.locks.LockSupport
 
 enum class Screen {
     HOME,
@@ -500,10 +501,21 @@ class MainViewModel(
 
     private fun launchEmulationLoop() {
         viewModelScope.launch(Dispatchers.Default) {
-            var lastPublishedFrame = -1L
-            var geometryPublished = false
+            val fps = PocketEngine.videoFps().coerceIn(30.0, 240.0)
+            val frameDurationNanos = (1_000_000_000.0 / fps).toLong()
+            var nextFrameDeadline = System.nanoTime()
 
             while (isActive && _uiState.value.screen == Screen.EMULATION) {
+                val now = System.nanoTime()
+                val waitNanos = nextFrameDeadline - now
+                if (waitNanos > 0) {
+                    LockSupport.parkNanos(waitNanos)
+                } else if (waitNanos < -frameDurationNanos * 4) {
+                    // If Android paused us briefly, resynchronise instead of trying
+                    // to run a burst of catch-up frames.
+                    nextFrameDeadline = System.nanoTime()
+                }
+
                 if (!PocketEngine.runFrame()) {
                     _uiState.update {
                         it.copy(emulationStatus = "Emulation stopped unexpectedly.")
@@ -511,36 +523,14 @@ class MainViewModel(
                     break
                 }
 
-                // Keep the audio pacing fix: blocking AudioTrack writes provide
-                // back-pressure without adding an artificial sleep to every frame.
+                // Audio playback is asynchronous now. Queue the PCM and immediately
+                // return to emulation/input work instead of blocking this thread.
                 val audio = PocketEngine.drainAudio()
                 if (audio.isNotEmpty()) {
-                    engineAudioPlayer.write(audio)
+                    engineAudioPlayer.enqueue(audio)
                 }
 
-                val frameNumber = PocketEngine.frameCount()
-                if (frameNumber != lastPublishedFrame) {
-                    val width = PocketEngine.frameWidth()
-                    val height = PocketEngine.frameHeight()
-                    val pixels = PocketEngine.copyFrameRgba()
-
-                    if (width > 0 && height > 0 && pixels.size == width * height) {
-                        _uiState.update {
-                            it.copy(
-                                emulationStatus = if (geometryPublished) {
-                                    it.emulationStatus
-                                } else {
-                                    "mGBA  ·  ${width}×${height}"
-                                },
-                                emulationFrame = pixels,
-                                emulationWidth = width,
-                                emulationHeight = height,
-                            )
-                        }
-                        geometryPublished = true
-                        lastPublishedFrame = frameNumber
-                    }
-                }
+                nextFrameDeadline += frameDurationNanos
             }
         }
     }
