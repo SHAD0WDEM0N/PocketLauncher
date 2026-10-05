@@ -2,6 +2,7 @@ package com.example.pocketlauncher
 
 import android.content.Intent
 import android.os.Bundle
+import android.provider.Settings
 import android.util.Log
 import android.view.KeyEvent
 import androidx.activity.ComponentActivity
@@ -18,15 +19,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import com.example.pocketlauncher.theme.PocketLauncherTheme
 
-/**
- * MainActivity — single-activity host for PocketLauncher.
- *
- * Responsibilities:
- *   1. Full-screen immersive mode.
- *   2. Route hardware controller KeyEvents through MainViewModel.
- *   3. Host Compose navigation.
- *   4. Launch Android's Storage Access Framework folder picker when requested.
- */
 class MainActivity : ComponentActivity() {
 
     private val viewModel: MainViewModel by viewModels()
@@ -41,8 +33,6 @@ class MainActivity : ComponentActivity() {
                     Intent.FLAG_GRANT_READ_URI_PERMISSION,
                 )
             } catch (e: SecurityException) {
-                // Some document providers grant access for the current session but
-                // do not support persisted permissions. Scanning can still proceed.
                 Log.w("PocketLauncher", "Could not persist folder permission: ${e.message}")
             }
 
@@ -69,6 +59,13 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
+                    LaunchedEffect(uiState.systemSettingsRequested) {
+                        if (uiState.systemSettingsRequested) {
+                            startActivity(Intent(Settings.ACTION_SETTINGS))
+                            viewModel.onSystemSettingsLaunched()
+                        }
+                    }
+
                     MainNavigation(
                         uiState = uiState,
                         viewModel = viewModel,
@@ -77,10 +74,6 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-
-    // -------------------------------------------------------------------------
-    // Controller input — all raw KeyEvents flow here before Compose sees them
-    // -------------------------------------------------------------------------
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
         if (viewModel.onKeyEvent(event, pressed = true)) return true
@@ -91,10 +84,6 @@ class MainActivity : ComponentActivity() {
         if (viewModel.onKeyEvent(event, pressed = false)) return true
         return super.onKeyUp(keyCode, event)
     }
-
-    // -------------------------------------------------------------------------
-    // Immersive full-screen — critical for a launcher / console feel
-    // -------------------------------------------------------------------------
 
     private fun hideSystemUI() {
         window.decorView.systemUiVisibility = (
