@@ -35,6 +35,7 @@ public:
 
     void setInputMask(uint32_t mask);
     double audioSampleRate() const;
+    double videoFps() const;
     std::vector<int16_t> drainAudio();
 
 private:
@@ -54,6 +55,7 @@ private:
     mutable std::mutex audio_mutex_;
     std::vector<int16_t> audio_pcm_;
     double audio_sample_rate_ = 0.0;
+    double video_fps_ = 60.0;
 
     using retro_api_version_t = unsigned (*)();
     using retro_get_system_info_t = void (*)(struct retro_system_info*);
