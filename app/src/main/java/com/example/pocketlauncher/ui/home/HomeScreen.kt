@@ -165,11 +165,15 @@ private fun ConsoleCard(
 
         Spacer(Modifier.weight(1f))
 
-        if (label == "Game Boy Advance") {
-            GeneratedGbaArt(
+        if (label == "Game Boy Advance" || label == "Game Boy" || label == "Game Boy Color") {
+            GeneratedConsoleArt(
+                label = label,
                 modifier = Modifier
                     .align(Alignment.CenterHorizontally)
-                    .size(width = 138.dp, height = 104.dp),
+                    .size(
+                        width = if (label == "Game Boy Advance") 138.dp else 112.dp,
+                        height = if (label == "Game Boy Advance") 104.dp else 116.dp,
+                    ),
             )
         } else {
             HardwareRender(
@@ -184,12 +188,20 @@ private fun ConsoleCard(
 }
 
 @Composable
-private fun GeneratedGbaArt(
+private fun GeneratedConsoleArt(
+    label: String,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
-    val bitmap = remember {
-        val encoded = context.resources.openRawResource(R.raw.gba_console_home_b64)
+    val rawId = when (label) {
+        "Game Boy" -> R.raw.gb_console_home_b64
+        "Game Boy Color" -> R.raw.gbc_console_home_b64
+        "Game Boy Advance" -> R.raw.gba_console_home_b64
+        else -> return
+    }
+
+    val bitmap = remember(label) {
+        val encoded = context.resources.openRawResource(rawId)
             .bufferedReader()
             .use { it.readText() }
             .trim()
@@ -200,7 +212,7 @@ private fun GeneratedGbaArt(
     if (bitmap != null) {
         Image(
             bitmap = bitmap,
-            contentDescription = "Game Boy Advance console artwork",
+            contentDescription = "$label console artwork",
             modifier = modifier,
             contentScale = ContentScale.Fit,
         )
