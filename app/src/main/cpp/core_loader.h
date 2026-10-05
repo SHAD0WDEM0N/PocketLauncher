@@ -19,6 +19,8 @@ public:
     bool loadGame(const std::string& romPath);
     void unloadGame();
     bool runFrame();
+    bool loadSaveRam(const std::string& path);
+    bool saveSaveRam(const std::string& path);
 
     bool isLoaded() const { return handle_ != nullptr; }
     bool isGameLoaded() const { return game_loaded_; }
@@ -71,6 +73,8 @@ private:
     using retro_load_game_t = bool (*)(const struct retro_game_info*);
     using retro_unload_game_t = void (*)();
     using retro_run_t = void (*)();
+    using retro_get_memory_data_t = void* (*)(unsigned);
+    using retro_get_memory_size_t = size_t (*)(unsigned);
 
     retro_api_version_t retro_api_version_ = nullptr;
     retro_get_system_info_t retro_get_system_info_ = nullptr;
@@ -86,6 +90,8 @@ private:
     retro_load_game_t retro_load_game_ = nullptr;
     retro_unload_game_t retro_unload_game_ = nullptr;
     retro_run_t retro_run_ = nullptr;
+    retro_get_memory_data_t retro_get_memory_data_ = nullptr;
+    retro_get_memory_size_t retro_get_memory_size_ = nullptr;
 
     template <typename T>
     bool bind(T& target, const char* symbol);
