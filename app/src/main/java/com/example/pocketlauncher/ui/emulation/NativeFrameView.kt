@@ -95,16 +95,21 @@ class NativeFrameView(context: Context) : View(context), Choreographer.FrameCall
             width.toFloat() / current.width.toFloat(),
             height.toFloat() / current.height.toFloat(),
         )
-        val scale = when (scaleMode) {
-            VideoScaleMode.FIT -> maxScale
-            VideoScaleMode.INTEGER -> kotlin.math.floor(maxScale).coerceAtLeast(1f)
-        }
+        val dst = if (scaleMode == VideoScaleMode.STRETCH) {
+            Rect(0, 0, width, height)
+        } else {
+            val scale = when (scaleMode) {
+                VideoScaleMode.FIT -> maxScale
+                VideoScaleMode.INTEGER -> kotlin.math.floor(maxScale).coerceAtLeast(1f)
+                VideoScaleMode.STRETCH -> maxScale
+            }
 
-        val drawWidth = (current.width * scale).toInt()
-        val drawHeight = (current.height * scale).toInt()
-        val left = (width - drawWidth) / 2
-        val top = (height - drawHeight) / 2
-        val dst = Rect(left, top, left + drawWidth, top + drawHeight)
+            val drawWidth = (current.width * scale).toInt()
+            val drawHeight = (current.height * scale).toInt()
+            val left = (width - drawWidth) / 2
+            val top = (height - drawHeight) / 2
+            Rect(left, top, left + drawWidth, top + drawHeight)
+        }
 
         canvas.drawBitmap(current, src, dst, paint)
 
