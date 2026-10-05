@@ -67,7 +67,7 @@ fun EmulationScreen(
                         "Resume",
                         "Save State",
                         "Load State",
-                        "State Slot   ${selectedStateSlot + 1} · $selectedStateSummary",
+                        "State Slot   ◀ ${selectedStateSlot + 1} ▶ · $selectedStateSummary",
                         "Display Settings",
                         "Controller Settings",
                         "Restart Game",
