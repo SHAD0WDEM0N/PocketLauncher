@@ -62,6 +62,12 @@ object PocketEngine {
         }
     }
 
+    fun loadSaveRam(path: String): Boolean =
+        if (loaded) runCatching { nativeLoadSaveRam(path) }.getOrDefault(false) else false
+
+    fun saveSaveRam(path: String): Boolean =
+        if (loaded) runCatching { nativeSaveSaveRam(path) }.getOrDefault(false) else false
+
     fun unloadGame() { if (loaded) runCatching { nativeUnloadGame() } }
 
     fun runFrame(): Boolean = if (loaded) runCatching { nativeRunFrame() }.getOrDefault(false) else false
@@ -113,4 +119,6 @@ object PocketEngine {
     private external fun nativeGetAudioSampleRate(): Double
     private external fun nativeDrainAudio(): ShortArray
     private external fun nativeGetVideoFps(): Double
+    private external fun nativeLoadSaveRam(path: String): Boolean
+    private external fun nativeSaveSaveRam(path: String): Boolean
 }
