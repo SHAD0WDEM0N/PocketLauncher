@@ -12,6 +12,7 @@ enum class PocketButton {
     UP, DOWN, LEFT, RIGHT,
     A, B, X, Y,
     L1, R1, L2, R2,
+    L3, R3,
     START, SELECT,
     MENU,           // Home / launcher button
 }
