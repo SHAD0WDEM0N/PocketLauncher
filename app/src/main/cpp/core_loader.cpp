@@ -2,6 +2,7 @@
 
 #include <android/log.h>
 #include <cstring>
+#include <fstream>
 #include <dlfcn.h>
 
 #define LOG_TAG "PocketCoreLoader"
@@ -51,7 +52,9 @@ bool CoreLoader::load(const std::string& path) {
         !bind(retro_deinit_, "retro_deinit") ||
         !bind(retro_load_game_, "retro_load_game") ||
         !bind(retro_unload_game_, "retro_unload_game") ||
-        !bind(retro_run_, "retro_run")) {
+        !bind(retro_run_, "retro_run") ||
+        !bind(retro_get_memory_data_, "retro_get_memory_data") ||
+        !bind(retro_get_memory_size_, "retro_get_memory_size")) {
         unload();
         return false;
     }
@@ -106,6 +109,8 @@ void CoreLoader::unload() {
     retro_load_game_ = nullptr;
     retro_unload_game_ = nullptr;
     retro_run_ = nullptr;
+    retro_get_memory_data_ = nullptr;
+    retro_get_memory_size_ = nullptr;
 }
 
 bool CoreLoader::loadGame(const std::string& romPath) {
@@ -169,6 +174,49 @@ void CoreLoader::unloadGame() {
 bool CoreLoader::runFrame() {
     if (!game_loaded_ || !retro_run_) return false;
     retro_run_();
+    return true;
+}
+
+bool CoreLoader::loadSaveRam(const std::string& path) {
+    if (!game_loaded_ || !retro_get_memory_data_ || !retro_get_memory_size_) return false;
+
+    void* data = retro_get_memory_data_(RETRO_MEMORY_SAVE_RAM);
+    const size_t size = retro_get_memory_size_(RETRO_MEMORY_SAVE_RAM);
+    if (!data || size == 0) return true;
+
+    std::ifstream input(path, std::ios::binary);
+    if (!input.good()) return true;
+
+    input.read(reinterpret_cast<char*>(data), static_cast<std::streamsize>(size));
+    if (!input && !input.eof()) {
+        last_error_ = "Failed reading save RAM";
+        return false;
+    }
+
+    LOGI("Loaded save RAM: %zu bytes from %s", size, path.c_str());
+    return true;
+}
+
+bool CoreLoader::saveSaveRam(const std::string& path) {
+    if (!game_loaded_ || !retro_get_memory_data_ || !retro_get_memory_size_) return false;
+
+    void* data = retro_get_memory_data_(RETRO_MEMORY_SAVE_RAM);
+    const size_t size = retro_get_memory_size_(RETRO_MEMORY_SAVE_RAM);
+    if (!data || size == 0) return true;
+
+    std::ofstream output(path, std::ios::binary | std::ios::trunc);
+    if (!output.good()) {
+        last_error_ = "Failed opening save RAM file";
+        return false;
+    }
+
+    output.write(reinterpret_cast<const char*>(data), static_cast<std::streamsize>(size));
+    if (!output.good()) {
+        last_error_ = "Failed writing save RAM";
+        return false;
+    }
+
+    LOGI("Saved save RAM: %zu bytes to %s", size, path.c_str());
     return true;
 }
 
