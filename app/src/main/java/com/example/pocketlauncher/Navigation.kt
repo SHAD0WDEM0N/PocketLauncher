@@ -71,7 +71,10 @@ fun MainNavigation(
             status = uiState.coreStatus,
         )
 
-        Screen.EMULATION -> EmulationScreen()
+        Screen.EMULATION -> EmulationScreen(
+            menuOpen = uiState.emulationMenuOpen,
+            menuIndex = uiState.emulationMenuIndex,
+        )
 
         Screen.INPUT_TEST -> InputTestScreen(
             events = uiState.inputEvents,
