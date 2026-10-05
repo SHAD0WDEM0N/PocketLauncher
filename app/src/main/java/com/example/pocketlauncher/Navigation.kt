@@ -79,6 +79,8 @@ fun MainNavigation(
             scaleMode = uiState.videoScaleMode,
             filterMode = uiState.videoFilterMode,
             menuHotkey = uiState.menuHotkey,
+            selectedStateSlot = uiState.selectedStateSlot,
+            selectedStateSummary = uiState.selectedStateSummary,
         )
 
         Screen.INPUT_TEST -> InputTestScreen(
