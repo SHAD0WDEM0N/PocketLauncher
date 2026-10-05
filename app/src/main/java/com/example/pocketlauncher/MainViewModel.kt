@@ -22,7 +22,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
@@ -511,13 +510,21 @@ class MainViewModel(
                     break
                 }
 
+                // mGBA produces one frame's worth of PCM each retro_run().
+                // A blocking AudioTrack write provides the timing clock and applies
+                // back-pressure instead of dropping samples or adding a fixed delay
+                // on top of emulation work.
                 val audio = PocketEngine.drainAudio()
                 if (audio.isNotEmpty()) {
                     engineAudioPlayer.write(audio)
                 }
 
                 val frameNumber = PocketEngine.frameCount()
-                if (frameNumber != lastPublishedFrame) {
+
+                // Compose does not need a brand-new 240x160 IntArray at the full
+                // emulation rate. Publish every second frame (~30 fps UI) while the
+                // core itself continues running at mGBA's native ~60 fps.
+                if (frameNumber != lastPublishedFrame && frameNumber % 2L == 0L) {
                     val width = PocketEngine.frameWidth()
                     val height = PocketEngine.frameHeight()
                     val pixels = PocketEngine.copyFrameRgba()
@@ -534,8 +541,6 @@ class MainViewModel(
                         lastPublishedFrame = frameNumber
                     }
                 }
-
-                delay(16)
             }
         }
     }
