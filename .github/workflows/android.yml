@@ -33,6 +33,11 @@ jobs:
         env:
           ANDROID_SDK_ROOT: ${{ env.ANDROID_HOME }}
 
+      - name: Prepare stable development keystore
+        run: |
+          base64 --decode .github/pocketlauncher-dev.keystore.b64 > "$RUNNER_TEMP/pocketlauncher-dev.jks"
+          echo "POCKETLAUNCHER_KEYSTORE=$RUNNER_TEMP/pocketlauncher-dev.jks" >> "$GITHUB_ENV"
+
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
