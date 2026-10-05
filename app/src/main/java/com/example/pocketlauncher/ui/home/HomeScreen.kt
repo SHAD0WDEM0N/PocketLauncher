@@ -1,9 +1,8 @@
 package com.example.pocketlauncher.ui.home
 
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,17 +14,20 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -41,12 +43,18 @@ fun HomeScreen(
     selectedIndex: Int = 0,
     menuItems: List<String>,
     manufacturers: Map<String, String> = emptyMap(),
+    releaseYears: Map<String, String> = emptyMap(),
 ) {
     val metrics = pocketLayoutMetrics()
     val safeIndex = selectedIndex.coerceIn(0, (menuItems.size - 1).coerceAtLeast(0))
     val selected = menuItems.getOrNull(safeIndex).orEmpty()
-    val previous = menuItems.getOrNull(safeIndex - 1)
-    val next = menuItems.getOrNull(safeIndex + 1)
+    val listState = rememberLazyListState()
+
+    LaunchedEffect(safeIndex, menuItems.size) {
+        if (menuItems.isNotEmpty()) {
+            listState.animateScrollToItem(safeIndex)
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -77,63 +85,45 @@ fun HomeScreen(
             )
         }
 
-        Spacer(Modifier.weight(0.48f))
+        Spacer(Modifier.height(28.dp))
 
-        Row(
+        Text(
+            text = "HOME",
+            style = MaterialTheme.typography.labelSmall,
+            color = PocketWhiteMuted,
+        )
+
+        Spacer(Modifier.height(12.dp))
+
+        LazyRow(
+            state = listState,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center,
         ) {
-            SideLabel(
-                text = previous ?: "",
-                alignment = TextAlign.End,
-                modifier = Modifier.width(150.dp),
-            )
-
-            Spacer(Modifier.width(18.dp))
-
-            SystemCard(
-                label = selected,
-                manufacturer = manufacturers[selected] ?: specialManufacturer(selected),
-                modifier = Modifier.width(340.dp),
-            )
-
-            Spacer(Modifier.width(18.dp))
-
-            SideLabel(
-                text = next ?: "",
-                alignment = TextAlign.Start,
-                modifier = Modifier.width(150.dp),
-            )
-        }
-
-        Spacer(Modifier.weight(0.42f))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center,
-        ) {
-            menuItems.forEachIndexed { index, _ ->
-                Box(
-                    modifier = Modifier
-                        .padding(horizontal = 4.dp)
-                        .size(if (index == safeIndex) 16.dp else 7.dp)
-                        .background(
-                            if (index == safeIndex) PocketAmber else PocketWhiteMuted.copy(alpha = 0.30f)
-                        ),
+            itemsIndexed(menuItems) { index, label ->
+                ConsoleCard(
+                    label = label,
+                    selected = index == safeIndex,
                 )
             }
         }
 
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(22.dp))
+
+        MetadataPanel(
+            label = selected,
+            manufacturer = manufacturers[selected] ?: specialManufacturer(selected),
+            releaseYear = releaseYears[selected] ?: "",
+        )
+
+        Spacer(Modifier.weight(1f))
 
         Text(
-            text = "◀  ▶  BROWSE    A  OPEN",
+            text = "◀  ▶  BROWSE    A  SELECT",
             style = MaterialTheme.typography.labelSmall.merge(
                 TextStyle(fontSize = metrics.hintTextSize)
             ),
             color = PocketWhiteMuted,
-            modifier = Modifier.align(Alignment.CenterHorizontally),
         )
 
         Spacer(Modifier.height(24.dp))
@@ -141,265 +131,247 @@ fun HomeScreen(
 }
 
 @Composable
-private fun SystemCard(
+private fun ConsoleCard(
     label: String,
-    manufacturer: String,
-    modifier: Modifier = Modifier,
+    selected: Boolean,
 ) {
-    val alpha by animateFloatAsState(
-        targetValue = 1f,
-        animationSpec = tween(140),
-        label = "systemCardAlpha",
-    )
+    val selectedBackground = Color(0xFFECE9E2)
+    val cardBackground = if (selected) selectedBackground else MaterialTheme.colorScheme.background
+    val cardBorder = if (selected) selectedBackground else PocketWhiteMuted.copy(alpha = 0.45f)
+    val foreground = if (selected) Color(0xFF171717) else MaterialTheme.colorScheme.onBackground
 
     Column(
-        modifier = modifier.alpha(alpha),
-        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .width(190.dp)
+            .height(182.dp)
+            .background(cardBackground)
+            .border(1.dp, cardBorder)
+            .padding(10.dp),
     ) {
-        HardwareGlyph(
-            label = label,
-            modifier = Modifier.size(width = 250.dp, height = 165.dp),
-        )
-
-        Spacer(Modifier.height(18.dp))
-
         Text(
-            text = if (label == "Recently Played") "LIBRARY" else if (label == "Settings") "SYSTEM" else "PLATFORM",
-            style = MaterialTheme.typography.labelSmall,
-            color = PocketAmber.copy(alpha = 0.78f),
-            letterSpacing = androidx.compose.ui.unit.TextUnit.Unspecified,
-        )
-
-        Spacer(Modifier.height(4.dp))
-
-        Text(
-            text = label.uppercase(),
-            style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.onBackground,
-            textAlign = TextAlign.Center,
-            maxLines = 1,
-        )
-
-        Spacer(Modifier.height(5.dp))
-
-        Text(
-            text = manufacturer.uppercase(),
+            text = label,
             style = MaterialTheme.typography.labelMedium,
-            color = PocketWhiteDim,
-            textAlign = TextAlign.Center,
+            color = foreground,
+            maxLines = 2,
+        )
+
+        Spacer(Modifier.weight(1f))
+
+        HardwareRender(
+            label = label,
+            selected = selected,
+            modifier = Modifier
+                .align(Alignment.CenterHorizontally)
+                .size(width = 124.dp, height = 92.dp),
         )
     }
 }
 
 @Composable
-private fun SideLabel(
-    text: String,
-    alignment: TextAlign,
-    modifier: Modifier = Modifier,
+private fun MetadataPanel(
+    label: String,
+    manufacturer: String,
+    releaseYear: String,
 ) {
-    Text(
-        text = text.uppercase(),
-        modifier = modifier.alpha(if (text.isBlank()) 0f else 0.22f),
-        style = MaterialTheme.typography.titleSmall,
-        color = PocketWhiteDim,
-        textAlign = alignment,
-        maxLines = 2,
-    )
+    val isPlatform = manufacturer.isNotBlank() && label != "Recently Played" && label != "Settings"
+
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(44.dp),
+        verticalAlignment = Alignment.Top,
+    ) {
+        MetadataCell(
+            heading = "TYPE",
+            value = when {
+                label == "Recently Played" -> "LIBRARY"
+                label == "Settings" -> "SYSTEM"
+                else -> "PLATFORM"
+            },
+        )
+
+        MetadataCell(
+            heading = "MANUFACTURER",
+            value = manufacturer.ifBlank { "POCKETLAUNCHER" }.uppercase(),
+        )
+
+        MetadataCell(
+            heading = "RELEASED",
+            value = if (isPlatform) releaseYear.ifBlank { "—" } else "—",
+        )
+
+        MetadataCell(
+            heading = "COLLECTION",
+            value = when (label) {
+                "Recently Played" -> "RECENT"
+                "Settings" -> "CONFIG"
+                else -> label.uppercase()
+            },
+        )
+    }
 }
 
 @Composable
-private fun HardwareGlyph(
+private fun MetadataCell(
+    heading: String,
+    value: String,
+) {
+    Column {
+        Text(
+            text = heading,
+            style = MaterialTheme.typography.labelSmall,
+            color = PocketWhiteMuted,
+        )
+        Spacer(Modifier.height(3.dp))
+        Text(
+            text = value,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onBackground,
+        )
+    }
+}
+
+@Composable
+private fun HardwareRender(
     label: String,
+    selected: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    val shell = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.84f)
-    val shadow = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.20f)
-    val dark = MaterialTheme.colorScheme.background
-    val screen = PocketGreen.copy(alpha = 0.34f)
-    val accent = PocketAmber.copy(alpha = 0.82f)
-    val soft = PocketWhiteDim.copy(alpha = 0.55f)
+    val ink = if (selected) Color(0xFF202020) else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.92f)
+    val mid = if (selected) Color(0xFF8F8F8B) else PocketWhiteDim.copy(alpha = 0.78f)
+    val light = if (selected) Color(0xFFC5C4BE) else PocketWhiteDim.copy(alpha = 0.40f)
+    val screen = if (selected) Color(0xFFB8C39B) else PocketGreen.copy(alpha = 0.50f)
 
     Canvas(modifier = modifier) {
         val w = size.width
         val h = size.height
 
-        fun scanlines(x: Float, y: Float, width: Float, height: Float, count: Int = 6) {
-            val gap = height / (count + 1)
-            for (i in 1..count) {
-                drawRect(
-                    color = dark.copy(alpha = 0.16f),
-                    topLeft = Offset(x, y + gap * i),
-                    size = Size(width, 1.5f),
-                )
+        fun drawGba() {
+            val top = Path().apply {
+                moveTo(w * 0.10f, h * 0.34f)
+                lineTo(w * 0.80f, h * 0.20f)
+                lineTo(w * 0.93f, h * 0.31f)
+                lineTo(w * 0.22f, h * 0.47f)
+                close()
             }
+            drawPath(top, color = light)
+
+            val front = Path().apply {
+                moveTo(w * 0.22f, h * 0.47f)
+                lineTo(w * 0.93f, h * 0.31f)
+                lineTo(w * 0.92f, h * 0.65f)
+                lineTo(w * 0.23f, h * 0.80f)
+                close()
+            }
+            drawPath(front, color = mid)
+
+            val side = Path().apply {
+                moveTo(w * 0.10f, h * 0.34f)
+                lineTo(w * 0.22f, h * 0.47f)
+                lineTo(w * 0.23f, h * 0.80f)
+                lineTo(w * 0.10f, h * 0.65f)
+                close()
+            }
+            drawPath(side, color = ink.copy(alpha = 0.60f))
+
+            drawRoundRect(
+                color = ink,
+                topLeft = Offset(w * 0.38f, h * 0.38f),
+                size = Size(w * 0.28f, h * 0.20f),
+                cornerRadius = CornerRadius(3f),
+            )
+            drawRect(
+                color = screen,
+                topLeft = Offset(w * 0.405f, h * 0.405f),
+                size = Size(w * 0.23f, h * 0.15f),
+            )
+
+            drawRect(ink, Offset(w * 0.24f, h * 0.54f), Size(w * 0.10f, h * 0.025f))
+            drawRect(ink, Offset(w * 0.275f, h * 0.50f), Size(w * 0.025f, h * 0.10f))
+
+            drawCircle(ink, radius = h * 0.027f, center = Offset(w * 0.75f, h * 0.47f))
+            drawCircle(ink, radius = h * 0.027f, center = Offset(w * 0.80f, h * 0.53f))
+
+            drawRect(ink.copy(alpha = 0.70f), Offset(w * 0.47f, h * 0.66f), Size(w * 0.06f, h * 0.012f))
+            drawRect(ink.copy(alpha = 0.70f), Offset(w * 0.56f, h * 0.64f), Size(w * 0.06f, h * 0.012f))
+
+            // Pixel-step highlights make the render read like low-res sprite art.
+            drawRect(light.copy(alpha = 0.8f), Offset(w * 0.18f, h * 0.29f), Size(w * 0.08f, h * 0.018f))
+            drawRect(light.copy(alpha = 0.6f), Offset(w * 0.70f, h * 0.24f), Size(w * 0.09f, h * 0.018f))
         }
 
-        fun pixelDust(x: Float, y: Float) {
-            val p = 3.5f
-            drawRect(soft, Offset(x, y), Size(p, p))
-            drawRect(soft.copy(alpha = 0.35f), Offset(x + p * 2.2f, y + p * 1.4f), Size(p, p))
-            drawRect(soft.copy(alpha = 0.22f), Offset(x + p * 4.0f, y - p * 0.8f), Size(p, p))
+        fun drawGameBoy(colorModel: Boolean) {
+            val bodyX = w * 0.34f
+            val bodyW = w * 0.34f
+            val bodyTop = h * 0.10f
+            val bodyH = h * 0.76f
+
+            drawRoundRect(
+                color = light,
+                topLeft = Offset(bodyX + w * 0.035f, bodyTop - h * 0.025f),
+                size = Size(bodyW, bodyH),
+                cornerRadius = CornerRadius(if (colorModel) 12f else 8f),
+            )
+
+            drawRoundRect(
+                color = mid,
+                topLeft = Offset(bodyX, bodyTop),
+                size = Size(bodyW, bodyH),
+                cornerRadius = CornerRadius(if (colorModel) 12f else 8f),
+            )
+
+            drawRoundRect(
+                color = ink,
+                topLeft = Offset(bodyX + bodyW * 0.11f, bodyTop + bodyH * 0.08f),
+                size = Size(bodyW * 0.78f, bodyH * 0.31f),
+                cornerRadius = CornerRadius(5f),
+            )
+
+            drawRect(
+                color = screen,
+                topLeft = Offset(bodyX + bodyW * 0.23f, bodyTop + bodyH * 0.135f),
+                size = Size(bodyW * 0.54f, bodyH * 0.20f),
+            )
+
+            drawRect(ink, Offset(bodyX + bodyW * 0.15f, bodyTop + bodyH * 0.55f), Size(bodyW * 0.25f, bodyH * 0.035f))
+            drawRect(ink, Offset(bodyX + bodyW * 0.25f, bodyTop + bodyH * 0.50f), Size(bodyW * 0.05f, bodyH * 0.14f))
+
+            drawCircle(ink, radius = h * 0.024f, center = Offset(bodyX + bodyW * 0.67f, bodyTop + bodyH * 0.56f))
+            drawCircle(ink, radius = h * 0.024f, center = Offset(bodyX + bodyW * 0.79f, bodyTop + bodyH * 0.62f))
+
+            for (i in 0..3) {
+                drawRect(
+                    color = ink.copy(alpha = 0.55f),
+                    topLeft = Offset(bodyX + bodyW * (0.58f + i * 0.07f), bodyTop + bodyH * (0.76f + i * 0.008f)),
+                    size = Size(bodyW * 0.025f, bodyH * 0.10f),
+                )
+            }
+
+            drawRect(light.copy(alpha = 0.75f), Offset(bodyX + bodyW * 0.12f, bodyTop + bodyH * 0.02f), Size(bodyW * 0.35f, bodyH * 0.018f))
         }
 
         when (label) {
-            "Game Boy Advance" -> {
-                drawRoundRect(
-                    color = shadow,
-                    topLeft = Offset(w * 0.075f, h * 0.245f),
-                    size = Size(w * 0.86f, h * 0.56f),
-                    cornerRadius = CornerRadius(h * 0.18f),
-                )
-                drawRoundRect(
-                    color = shell,
-                    topLeft = Offset(w * 0.06f, h * 0.22f),
-                    size = Size(w * 0.88f, h * 0.56f),
-                    cornerRadius = CornerRadius(h * 0.18f),
-                )
-                drawRoundRect(
-                    color = dark,
-                    topLeft = Offset(w * 0.285f, h * 0.275f),
-                    size = Size(w * 0.43f, h * 0.36f),
-                    cornerRadius = CornerRadius(8f),
-                )
-                drawRect(
-                    color = screen,
-                    topLeft = Offset(w * 0.32f, h * 0.31f),
-                    size = Size(w * 0.36f, h * 0.28f),
-                )
-                scanlines(w * 0.32f, h * 0.31f, w * 0.36f, h * 0.28f)
-
-                // D-pad
-                drawRoundRect(dark, Offset(w * 0.155f, h * 0.405f), Size(w * 0.16f, h * 0.055f), CornerRadius(4f))
-                drawRoundRect(dark, Offset(w * 0.207f, h * 0.35f), Size(w * 0.055f, h * 0.17f), CornerRadius(4f))
-
-                // A/B
-                drawCircle(accent, radius = h * 0.052f, center = Offset(w * 0.795f, h * 0.40f))
-                drawCircle(accent.copy(alpha = 0.70f), radius = h * 0.052f, center = Offset(w * 0.855f, h * 0.49f))
-
-                // Start / Select
-                drawRoundRect(dark.copy(alpha = 0.72f), Offset(w * 0.445f, h * 0.67f), Size(w * 0.07f, h * 0.018f), CornerRadius(3f))
-                drawRoundRect(dark.copy(alpha = 0.72f), Offset(w * 0.535f, h * 0.67f), Size(w * 0.07f, h * 0.018f), CornerRadius(3f))
-
-                // Shoulder hints
-                drawRoundRect(shell.copy(alpha = 0.58f), Offset(w * 0.12f, h * 0.17f), Size(w * 0.20f, h * 0.055f), CornerRadius(5f))
-                drawRoundRect(shell.copy(alpha = 0.58f), Offset(w * 0.68f, h * 0.17f), Size(w * 0.20f, h * 0.055f), CornerRadius(5f))
-                pixelDust(w * 0.10f, h * 0.83f)
-            }
-
-            "Game Boy" -> {
-                val x = w * 0.31f
-                val bw = w * 0.38f
-                drawRoundRect(
-                    color = shadow,
-                    topLeft = Offset(x + w * 0.012f, h * 0.065f),
-                    size = Size(bw, h * 0.84f),
-                    cornerRadius = CornerRadius(14f),
-                )
-                drawRoundRect(
-                    color = shell,
-                    topLeft = Offset(x, h * 0.045f),
-                    size = Size(bw, h * 0.84f),
-                    cornerRadius = CornerRadius(14f),
-                )
-                drawRoundRect(
-                    color = dark.copy(alpha = 0.90f),
-                    topLeft = Offset(x + bw * 0.09f, h * 0.12f),
-                    size = Size(bw * 0.82f, h * 0.34f),
-                    cornerRadius = CornerRadius(9f),
-                )
-                drawRect(screen, Offset(x + bw * 0.22f, h * 0.17f), Size(bw * 0.58f, h * 0.22f))
-                scanlines(x + bw * 0.22f, h * 0.17f, bw * 0.58f, h * 0.22f, 5)
-                drawCircle(accent.copy(alpha = 0.70f), radius = 3.5f, center = Offset(x + bw * 0.15f, h * 0.30f))
-
-                drawRoundRect(dark, Offset(x + bw * 0.13f, h * 0.57f), Size(bw * 0.28f, h * 0.052f), CornerRadius(3f))
-                drawRoundRect(dark, Offset(x + bw * 0.235f, h * 0.515f), Size(bw * 0.055f, h * 0.17f), CornerRadius(3f))
-                drawCircle(accent, radius = h * 0.044f, center = Offset(x + bw * 0.67f, h * 0.56f))
-                drawCircle(accent.copy(alpha = 0.72f), radius = h * 0.044f, center = Offset(x + bw * 0.79f, h * 0.63f))
-                drawRoundRect(dark.copy(alpha = 0.68f), Offset(x + bw * 0.34f, h * 0.72f), Size(bw * 0.13f, h * 0.018f), CornerRadius(3f))
-                drawRoundRect(dark.copy(alpha = 0.68f), Offset(x + bw * 0.52f, h * 0.72f), Size(bw * 0.13f, h * 0.018f), CornerRadius(3f))
-
-                for (i in 0..4) {
-                    drawRoundRect(
-                        color = dark.copy(alpha = 0.50f),
-                        topLeft = Offset(x + bw * (0.61f + i * 0.055f), h * (0.78f + i * 0.008f)),
-                        size = Size(bw * 0.035f, h * 0.075f),
-                        cornerRadius = CornerRadius(2f),
-                    )
-                }
-                pixelDust(x - w * 0.07f, h * 0.89f)
-            }
-
-            "Game Boy Color" -> {
-                val x = w * 0.325f
-                val bw = w * 0.35f
-                drawRoundRect(
-                    color = shadow,
-                    topLeft = Offset(x + w * 0.012f, h * 0.065f),
-                    size = Size(bw, h * 0.82f),
-                    cornerRadius = CornerRadius(20f),
-                )
-                drawRoundRect(
-                    color = shell,
-                    topLeft = Offset(x, h * 0.045f),
-                    size = Size(bw, h * 0.82f),
-                    cornerRadius = CornerRadius(20f),
-                )
-                drawRoundRect(
-                    color = dark.copy(alpha = 0.90f),
-                    topLeft = Offset(x + bw * 0.08f, h * 0.12f),
-                    size = Size(bw * 0.84f, h * 0.31f),
-                    cornerRadius = CornerRadius(10f),
-                )
-                drawRect(screen.copy(alpha = 0.44f), Offset(x + bw * 0.19f, h * 0.165f), Size(bw * 0.62f, h * 0.20f))
-                scanlines(x + bw * 0.19f, h * 0.165f, bw * 0.62f, h * 0.20f, 5)
-
-                drawRoundRect(dark, Offset(x + bw * 0.13f, h * 0.55f), Size(bw * 0.27f, h * 0.05f), CornerRadius(3f))
-                drawRoundRect(dark, Offset(x + bw * 0.235f, h * 0.50f), Size(bw * 0.055f, h * 0.16f), CornerRadius(3f))
-                drawCircle(accent, radius = h * 0.043f, center = Offset(x + bw * 0.66f, h * 0.54f))
-                drawCircle(accent.copy(alpha = 0.72f), radius = h * 0.043f, center = Offset(x + bw * 0.79f, h * 0.61f))
-                drawRoundRect(dark.copy(alpha = 0.65f), Offset(x + bw * 0.34f, h * 0.70f), Size(bw * 0.13f, h * 0.017f), CornerRadius(3f))
-                drawRoundRect(dark.copy(alpha = 0.65f), Offset(x + bw * 0.52f, h * 0.70f), Size(bw * 0.13f, h * 0.017f), CornerRadius(3f))
-                for (i in 0..4) {
-                    drawRoundRect(
-                        color = dark.copy(alpha = 0.46f),
-                        topLeft = Offset(x + bw * (0.62f + i * 0.052f), h * (0.77f + i * 0.006f)),
-                        size = Size(bw * 0.032f, h * 0.065f),
-                        cornerRadius = CornerRadius(2f),
-                    )
-                }
-                pixelDust(x - w * 0.06f, h * 0.88f)
-            }
-
+            "Game Boy Advance" -> drawGba()
+            "Game Boy" -> drawGameBoy(false)
+            "Game Boy Color" -> drawGameBoy(true)
             "Recently Played" -> {
                 drawRoundRect(
-                    color = shell,
-                    topLeft = Offset(w * 0.20f, h * 0.19f),
-                    size = Size(w * 0.60f, h * 0.58f),
-                    cornerRadius = CornerRadius(12f),
+                    color = mid,
+                    topLeft = Offset(w * 0.22f, h * 0.22f),
+                    size = Size(w * 0.56f, h * 0.52f),
+                    cornerRadius = CornerRadius(7f),
                 )
-                drawRoundRect(
-                    color = dark,
-                    topLeft = Offset(w * 0.27f, h * 0.27f),
-                    size = Size(w * 0.46f, h * 0.30f),
-                    cornerRadius = CornerRadius(6f),
-                )
-                drawRect(screen, Offset(w * 0.30f, h * 0.30f), Size(w * 0.40f, h * 0.24f))
-                scanlines(w * 0.30f, h * 0.30f, w * 0.40f, h * 0.24f, 5)
-                drawRoundRect(accent, Offset(w * 0.44f, h * 0.65f), Size(w * 0.12f, h * 0.025f), CornerRadius(3f))
-                pixelDust(w * 0.14f, h * 0.82f)
+                drawRect(ink, Offset(w * 0.30f, h * 0.31f), Size(w * 0.40f, h * 0.25f))
+                drawRect(screen, Offset(w * 0.33f, h * 0.34f), Size(w * 0.34f, h * 0.19f))
+                drawRect(ink.copy(alpha = 0.65f), Offset(w * 0.45f, h * 0.64f), Size(w * 0.10f, h * 0.018f))
             }
-
             else -> {
                 drawRoundRect(
-                    color = shell,
-                    topLeft = Offset(w * 0.27f, h * 0.18f),
-                    size = Size(w * 0.46f, h * 0.60f),
-                    cornerRadius = CornerRadius(12f),
+                    color = mid,
+                    topLeft = Offset(w * 0.30f, h * 0.20f),
+                    size = Size(w * 0.40f, h * 0.58f),
+                    cornerRadius = CornerRadius(7f),
                 )
-                drawRoundRect(dark, Offset(w * 0.36f, h * 0.29f), Size(w * 0.28f, h * 0.12f), CornerRadius(5f))
-                drawRect(accent, Offset(w * 0.46f, h * 0.49f), Size(w * 0.08f, h * 0.08f))
-                drawRoundRect(dark.copy(alpha = 0.62f), Offset(w * 0.40f, h * 0.66f), Size(w * 0.20f, h * 0.025f), CornerRadius(3f))
-                pixelDust(w * 0.20f, h * 0.83f)
+                drawRect(ink, Offset(w * 0.39f, h * 0.31f), Size(w * 0.22f, h * 0.09f))
+                drawRect(ink, Offset(w * 0.46f, h * 0.50f), Size(w * 0.08f, h * 0.08f))
             }
         }
     }
