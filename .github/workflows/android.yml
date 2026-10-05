@@ -24,10 +24,12 @@ jobs:
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          packages: ''
 
-      - name: Install NDK
+      - name: Install NDK and platform tools
         run: |
-          sdkmanager "ndk;27.0.12077973" "cmake;3.22.1"
+          sdkmanager "platform-tools" "ndk;27.0.12077973" "cmake;3.22.1"
         env:
           ANDROID_SDK_ROOT: ${{ env.ANDROID_HOME }}
 
