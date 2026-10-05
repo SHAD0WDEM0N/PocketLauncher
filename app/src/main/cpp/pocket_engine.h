@@ -87,6 +87,14 @@ JNIEXPORT jdouble JNICALL
 Java_com_example_pocketlauncher_engine_PocketEngine_nativeGetVideoFps(
         JNIEnv* env, jobject thiz);
 
+JNIEXPORT jboolean JNICALL
+Java_com_example_pocketlauncher_engine_PocketEngine_nativeLoadSaveRam(
+        JNIEnv* env, jobject thiz, jstring path);
+
+JNIEXPORT jboolean JNICALL
+Java_com_example_pocketlauncher_engine_PocketEngine_nativeSaveSaveRam(
+        JNIEnv* env, jobject thiz, jstring path);
+
 #ifdef __cplusplus
 }
 #endif
