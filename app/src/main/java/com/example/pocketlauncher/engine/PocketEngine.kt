@@ -52,6 +52,24 @@ object PocketEngine {
         }
     }
 
+    fun loadGame(path: String): Result<Unit> {
+        if (!loaded) return Result.failure(IllegalStateException("Native engine unavailable"))
+        return runCatching {
+            if (!nativeLoadGame(path)) {
+                val error = nativeGetCoreError().ifBlank { "ROM load failed" }
+                error(error)
+            }
+        }
+    }
+
+    fun unloadGame() { if (loaded) runCatching { nativeUnloadGame() } }
+
+    fun runFrame(): Boolean = if (loaded) runCatching { nativeRunFrame() }.getOrDefault(false) else false
+    fun frameWidth(): Int = if (loaded) runCatching { nativeGetFrameWidth() }.getOrDefault(0) else 0
+    fun frameHeight(): Int = if (loaded) runCatching { nativeGetFrameHeight() }.getOrDefault(0) else 0
+    fun frameCount(): Long = if (loaded) runCatching { nativeGetFrameCount() }.getOrDefault(0L) else 0L
+    fun copyFrameRgba(): IntArray = if (loaded) runCatching { nativeCopyFrameRgba() }.getOrDefault(IntArray(0)) else IntArray(0)
+
     fun unloadCore() {
         if (loaded) runCatching { nativeUnloadCore() }
     }
@@ -71,4 +89,11 @@ object PocketEngine {
     private external fun nativeGetCoreVersion(): String
     private external fun nativeGetCoreExtensions(): String
     private external fun nativeGetCoreError(): String
+    private external fun nativeLoadGame(path: String): Boolean
+    private external fun nativeUnloadGame()
+    private external fun nativeRunFrame(): Boolean
+    private external fun nativeGetFrameWidth(): Int
+    private external fun nativeGetFrameHeight(): Int
+    private external fun nativeGetFrameCount(): Long
+    private external fun nativeCopyFrameRgba(): IntArray
 }
