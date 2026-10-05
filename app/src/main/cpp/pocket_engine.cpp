@@ -205,3 +205,28 @@ Java_com_example_pocketlauncher_engine_PocketEngine_nativeGetVideoFps(
         jobject /* thiz */) {
     return static_cast<jdouble>(g_core_loader.videoFps());
 }
+
+
+JNIEXPORT jboolean JNICALL
+Java_com_example_pocketlauncher_engine_PocketEngine_nativeLoadSaveRam(
+        JNIEnv* env,
+        jobject /* thiz */,
+        jstring path) {
+    if (!path) return JNI_FALSE;
+    const char* chars = env->GetStringUTFChars(path, nullptr);
+    const std::string savePath(chars ? chars : "");
+    if (chars) env->ReleaseStringUTFChars(path, chars);
+    return g_core_loader.loadSaveRam(savePath) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_example_pocketlauncher_engine_PocketEngine_nativeSaveSaveRam(
+        JNIEnv* env,
+        jobject /* thiz */,
+        jstring path) {
+    if (!path) return JNI_FALSE;
+    const char* chars = env->GetStringUTFChars(path, nullptr);
+    const std::string savePath(chars ? chars : "");
+    if (chars) env->ReleaseStringUTFChars(path, chars);
+    return g_core_loader.saveSaveRam(savePath) ? JNI_TRUE : JNI_FALSE;
+}
