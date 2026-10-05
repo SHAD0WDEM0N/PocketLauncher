@@ -13,22 +13,15 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import com.example.pocketlauncher.library.GameEntry
 import com.example.pocketlauncher.library.Platform
 import com.example.pocketlauncher.theme.PocketAmber
 import com.example.pocketlauncher.theme.PocketWhiteDim
 import com.example.pocketlauncher.theme.PocketWhiteMuted
+import com.example.pocketlauncher.ui.common.pocketLayoutMetrics
 
-/**
- * Minimal controller-first platform library.
- *
- * No folder configured:
- *   A opens Android's folder picker.
- *
- * Folder configured:
- *   UP/DOWN moves through ROMs, X changes the folder, Y rescans, B returns home.
- */
 @Composable
 fun PlatformScreen(
     platform: Platform,
@@ -38,6 +31,7 @@ fun PlatformScreen(
     isScanning: Boolean,
 ) {
     val listState = rememberLazyListState()
+    val metrics = pocketLayoutMetrics()
 
     LaunchedEffect(selectedIndex, games.size) {
         if (games.isNotEmpty()) {
@@ -49,14 +43,20 @@ fun PlatformScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .padding(horizontal = 48.dp),
+            .padding(horizontal = metrics.horizontalPadding),
     ) {
-        Spacer(Modifier.height(64.dp))
+        Spacer(Modifier.height(metrics.topPadding))
 
         Text(
             text = platform.displayName.uppercase(),
-            style = MaterialTheme.typography.displayLarge,
+            style = MaterialTheme.typography.displayLarge.merge(
+                TextStyle(
+                    fontSize = metrics.titleSize,
+                    letterSpacing = metrics.titleTracking,
+                )
+            ),
             color = MaterialTheme.colorScheme.onBackground,
+            maxLines = 1,
         )
 
         Spacer(Modifier.height(8.dp))
@@ -66,18 +66,22 @@ fun PlatformScreen(
         if (folderLabel != null) {
             Text(
                 text = "FOLDER  $folderLabel",
-                style = MaterialTheme.typography.labelSmall,
+                style = MaterialTheme.typography.labelSmall.merge(
+                    TextStyle(fontSize = metrics.hintTextSize)
+                ),
                 color = PocketWhiteMuted,
             )
         }
 
-        Spacer(Modifier.height(28.dp))
+        Spacer(Modifier.height(metrics.sectionGap))
 
         when {
             folderLabel == null -> {
                 EmptyMessage(
                     title = "No ROM folder configured.",
                     subtitle = "Press A to select a folder for ${platform.displayName}.",
+                    menuSize = metrics.menuTextSize,
+                    secondarySize = metrics.secondaryTextSize,
                 )
             }
 
@@ -85,6 +89,8 @@ fun PlatformScreen(
                 EmptyMessage(
                     title = "Scanning...",
                     subtitle = "Looking for ${platform.extensions.joinToString(" / ") { ".$it" }} files.",
+                    menuSize = metrics.menuTextSize,
+                    secondarySize = metrics.secondaryTextSize,
                 )
             }
 
@@ -92,6 +98,8 @@ fun PlatformScreen(
                 EmptyMessage(
                     title = "No games found.",
                     subtitle = "Press Y to rescan or X to choose a different folder.",
+                    menuSize = metrics.menuTextSize,
+                    secondarySize = metrics.secondaryTextSize,
                 )
             }
 
@@ -107,6 +115,8 @@ fun PlatformScreen(
                         GameRow(
                             game = game,
                             selected = index == selectedIndex,
+                            rowHeight = metrics.rowHeight,
+                            textSize = metrics.menuTextSize,
                         )
                     }
                 }
@@ -118,7 +128,7 @@ fun PlatformScreen(
         }
 
         HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
-        Spacer(Modifier.height(14.dp))
+        Spacer(Modifier.height(12.dp))
 
         Text(
             text = if (folderLabel == null) {
@@ -126,11 +136,13 @@ fun PlatformScreen(
             } else {
                 "A  SELECT     X  CHANGE FOLDER     Y  RESCAN     B  BACK"
             },
-            style = MaterialTheme.typography.labelSmall,
+            style = MaterialTheme.typography.labelSmall.merge(
+                TextStyle(fontSize = metrics.hintTextSize)
+            ),
             color = PocketWhiteMuted,
         )
 
-        Spacer(Modifier.height(32.dp))
+        Spacer(Modifier.height(24.dp))
     }
 }
 
@@ -138,24 +150,30 @@ fun PlatformScreen(
 private fun GameRow(
     game: GameEntry,
     selected: Boolean,
+    rowHeight: androidx.compose.ui.unit.Dp,
+    textSize: androidx.compose.ui.unit.TextUnit,
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
-            .height(46.dp)
-            .alpha(if (selected) 1f else 0.45f),
+            .height(rowHeight)
+            .alpha(if (selected) 1f else 0.42f),
     ) {
         Text(
             text = if (selected) ">" else " ",
-            style = MaterialTheme.typography.bodyLarge,
+            style = MaterialTheme.typography.bodyLarge.merge(
+                TextStyle(fontSize = textSize)
+            ),
             color = PocketAmber,
             modifier = Modifier.width(32.dp),
         )
 
         Text(
             text = game.displayName,
-            style = MaterialTheme.typography.bodyLarge,
+            style = MaterialTheme.typography.bodyLarge.merge(
+                TextStyle(fontSize = textSize)
+            ),
             color = if (selected) MaterialTheme.colorScheme.onBackground else PocketWhiteDim,
             maxLines = 1,
         )
@@ -166,17 +184,23 @@ private fun GameRow(
 private fun EmptyMessage(
     title: String,
     subtitle: String,
+    menuSize: androidx.compose.ui.unit.TextUnit,
+    secondarySize: androidx.compose.ui.unit.TextUnit,
 ) {
     Column {
         Text(
             text = title,
-            style = MaterialTheme.typography.bodyLarge,
+            style = MaterialTheme.typography.bodyLarge.merge(
+                TextStyle(fontSize = menuSize)
+            ),
             color = MaterialTheme.colorScheme.onBackground,
         )
         Spacer(Modifier.height(8.dp))
         Text(
             text = subtitle,
-            style = MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.bodySmall.merge(
+                TextStyle(fontSize = secondarySize)
+            ),
             color = PocketWhiteMuted,
         )
     }
