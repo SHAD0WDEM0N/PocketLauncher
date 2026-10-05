@@ -162,3 +162,38 @@ Java_com_example_pocketlauncher_engine_PocketEngine_nativeCopyFrameRgba(
     );
     return result;
 }
+
+
+JNIEXPORT void JNICALL
+Java_com_example_pocketlauncher_engine_PocketEngine_nativeSetInputMask(
+        JNIEnv* /* env */,
+        jobject /* thiz */,
+        jint mask) {
+    g_core_loader.setInputMask(static_cast<uint32_t>(mask));
+}
+
+JNIEXPORT jdouble JNICALL
+Java_com_example_pocketlauncher_engine_PocketEngine_nativeGetAudioSampleRate(
+        JNIEnv* /* env */,
+        jobject /* thiz */) {
+    return static_cast<jdouble>(g_core_loader.audioSampleRate());
+}
+
+JNIEXPORT jshortArray JNICALL
+Java_com_example_pocketlauncher_engine_PocketEngine_nativeDrainAudio(
+        JNIEnv* env,
+        jobject /* thiz */) {
+    const auto audio = g_core_loader.drainAudio();
+    if (audio.empty()) return env->NewShortArray(0);
+
+    jshortArray result = env->NewShortArray(static_cast<jsize>(audio.size()));
+    if (!result) return nullptr;
+
+    env->SetShortArrayRegion(
+        result,
+        0,
+        static_cast<jsize>(audio.size()),
+        reinterpret_cast<const jshort*>(audio.data())
+    );
+    return result;
+}
