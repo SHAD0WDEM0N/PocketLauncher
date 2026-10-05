@@ -445,8 +445,6 @@ class MainViewModel(
                     emulationMenuPage = EmulationMenuPage.MAIN,
                     emulationMenuIndex = 0,
                     emulationMenuStatus = "",
-                    selectedStateSlot = 0,
-                    selectedStateSummary = saveStateManager.slotSummary(game, 0),
                 )
             }
             return true
@@ -591,7 +589,7 @@ class MainViewModel(
                 2 -> _uiState.update {
                     it.copy(
                         emulationMenuPage = EmulationMenuPage.MAIN,
-                        emulationMenuIndex = 5,
+                        emulationMenuIndex = 4,
                         emulationMenuStatus = "",
                     )
                 }
@@ -614,7 +612,7 @@ class MainViewModel(
                 1 -> _uiState.update {
                     it.copy(
                         emulationMenuPage = EmulationMenuPage.MAIN,
-                        emulationMenuIndex = 4,
+                        emulationMenuIndex = 5,
                         emulationMenuStatus = "",
                     )
                 }
@@ -765,6 +763,8 @@ class MainViewModel(
                     emulationMenuPage = EmulationMenuPage.MAIN,
                     emulationMenuIndex = 0,
                     emulationMenuStatus = "",
+                    selectedStateSlot = 0,
+                    selectedStateSummary = saveStateManager.slotSummary(game, 0),
                 )
             }
 
