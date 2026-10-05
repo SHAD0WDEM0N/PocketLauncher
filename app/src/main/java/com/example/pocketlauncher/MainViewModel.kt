@@ -567,7 +567,7 @@ class MainViewModel(
                 0 -> _uiState.update { it.copy(emulationMenuOpen = false, emulationMenuStatus = "") }
                 1 -> saveStateSlot()
                 2 -> loadStateSlot()
-                3 -> cycleStateSlot()
+                3 -> Unit
                 4 -> _uiState.update {
                     it.copy(
                         emulationMenuPage = EmulationMenuPage.DISPLAY,
