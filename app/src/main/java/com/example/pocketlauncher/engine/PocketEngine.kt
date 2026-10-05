@@ -70,6 +70,16 @@ object PocketEngine {
     fun frameCount(): Long = if (loaded) runCatching { nativeGetFrameCount() }.getOrDefault(0L) else 0L
     fun copyFrameRgba(): IntArray = if (loaded) runCatching { nativeCopyFrameRgba() }.getOrDefault(IntArray(0)) else IntArray(0)
 
+    fun setInputMask(mask: Int) {
+        if (loaded) runCatching { nativeSetInputMask(mask) }
+    }
+
+    fun audioSampleRate(): Double =
+        if (loaded) runCatching { nativeGetAudioSampleRate() }.getOrDefault(0.0) else 0.0
+
+    fun drainAudio(): ShortArray =
+        if (loaded) runCatching { nativeDrainAudio() }.getOrDefault(ShortArray(0)) else ShortArray(0)
+
     fun unloadCore() {
         if (loaded) runCatching { nativeUnloadCore() }
     }
@@ -96,4 +106,7 @@ object PocketEngine {
     private external fun nativeGetFrameHeight(): Int
     private external fun nativeGetFrameCount(): Long
     private external fun nativeCopyFrameRgba(): IntArray
+    private external fun nativeSetInputMask(mask: Int)
+    private external fun nativeGetAudioSampleRate(): Double
+    private external fun nativeDrainAudio(): ShortArray
 }
