@@ -37,7 +37,7 @@ class EngineAudioPlayer {
                     .setChannelMask(AudioFormat.CHANNEL_OUT_STEREO)
                     .build()
             )
-            .setBufferSizeInBytes(max(minBuffer, 4096))
+            .setBufferSizeInBytes(max(minBuffer * 4, 16384))
             .setTransferMode(AudioTrack.MODE_STREAM)
             .build()
             .also { it.play() }
@@ -46,7 +46,7 @@ class EngineAudioPlayer {
     fun write(samples: ShortArray) {
         if (samples.isEmpty()) return
         val current = track ?: return
-        current.write(samples, 0, samples.size, AudioTrack.WRITE_NON_BLOCKING)
+        current.write(samples, 0, samples.size, AudioTrack.WRITE_BLOCKING)
     }
 
     fun stop() {
