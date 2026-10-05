@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Rect
+import android.os.SystemClock
 import android.view.Choreographer
 import android.view.View
 import com.example.pocketlauncher.engine.PocketEngine
@@ -12,9 +13,20 @@ import com.example.pocketlauncher.engine.PocketEngine
 class NativeFrameView(context: Context) : View(context), Choreographer.FrameCallback {
 
     private val paint = Paint(Paint.FILTER_BITMAP_FLAG)
+    private val debugPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = android.graphics.Color.WHITE
+        textSize = 28f
+        setShadowLayer(4f, 1f, 1f, android.graphics.Color.BLACK)
+    }
     private var bitmap: Bitmap? = null
     private var lastFrameCount = -1L
     private var running = true
+
+    private var fpsWindowStartMs = SystemClock.elapsedRealtime()
+    private var fpsWindowCoreStart = 0L
+    private var presentedFrames = 0
+    private var coreFps = 0f
+    private var displayFps = 0f
 
     init {
         isFocusable = false
@@ -23,6 +35,21 @@ class NativeFrameView(context: Context) : View(context), Choreographer.FrameCall
 
     override fun doFrame(frameTimeNanos: Long) {
         if (!running) return
+        presentedFrames++
+
+        val nowMs = SystemClock.elapsedRealtime()
+        val elapsedMs = nowMs - fpsWindowStartMs
+        if (elapsedMs >= 1000L) {
+            val currentCoreFrame = PocketEngine.frameCount()
+            val elapsedSeconds = elapsedMs / 1000f
+            coreFps = (currentCoreFrame - fpsWindowCoreStart) / elapsedSeconds
+            displayFps = presentedFrames / elapsedSeconds
+
+            fpsWindowStartMs = nowMs
+            fpsWindowCoreStart = currentCoreFrame
+            presentedFrames = 0
+        }
+
         invalidate()
         Choreographer.getInstance().postFrameCallback(this)
     }
@@ -61,6 +88,13 @@ class NativeFrameView(context: Context) : View(context), Choreographer.FrameCall
         val dst = Rect(left, top, left + drawWidth, top + drawHeight)
 
         canvas.drawBitmap(current, src, dst, paint)
+
+        canvas.drawText(
+            "CORE %.1f  DISPLAY %.1f".format(coreFps, displayFps),
+            20f,
+            38f,
+            debugPaint,
+        )
     }
 
     override fun onDetachedFromWindow() {
