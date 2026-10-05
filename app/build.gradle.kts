@@ -12,8 +12,10 @@ android {
         applicationId = "com.example.pocketlauncher"
         minSdk        = 26          // Android 8 — covers Retroid G2 and Mangmi Air Y
         targetSdk     = 36
-        versionCode   = 2
-        versionName   = "0.2.0"
+
+        val ciRunNumber = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull()
+        versionCode   = ciRunNumber ?: 2
+        versionName   = if (ciRunNumber != null) "0.2.0-dev.$ciRunNumber" else "0.2.0"
 
         // ── NDK / CMake ───────────────────────────────────────────────────────
         externalNativeBuild {
@@ -33,7 +35,26 @@ android {
         }
     }
 
+    signingConfigs {
+        create("ciDebug") {
+            val keystorePath = System.getenv("POCKETLAUNCHER_KEYSTORE")
+            if (!keystorePath.isNullOrBlank()) {
+                storeFile = file(keystorePath)
+                storePassword = "android"
+                keyAlias = "androiddebugkey"
+                keyPassword = "android"
+            }
+        }
+    }
+
     buildTypes {
+        debug {
+            val keystorePath = System.getenv("POCKETLAUNCHER_KEYSTORE")
+            if (!keystorePath.isNullOrBlank()) {
+                signingConfig = signingConfigs.getByName("ciDebug")
+            }
+        }
+
         release {
             isMinifyEnabled = false
             proguardFiles(
