@@ -889,6 +889,24 @@ class MainViewModel(
         }
     }
 
+    fun onEmulationMenuTouch(index: Int) {
+        if (_uiState.value.screen != Screen.EMULATION || !_uiState.value.emulationMenuOpen) return
+        _uiState.update { it.copy(emulationMenuIndex = index, emulationMenuStatus = "") }
+
+        val state = _uiState.value
+        if (state.emulationMenuPage == EmulationMenuPage.MAIN && index == 3) {
+            return
+        }
+        activateEmulationMenuItem()
+    }
+
+    fun onStateSlotTouch(delta: Int) {
+        if (_uiState.value.screen != Screen.EMULATION || !_uiState.value.emulationMenuOpen) return
+        if (_uiState.value.emulationMenuPage != EmulationMenuPage.MAIN) return
+        _uiState.update { it.copy(emulationMenuIndex = 3, emulationMenuStatus = "") }
+        cycleStateSlot(delta)
+    }
+
     private fun handleInputTestInput(button: PocketButton): Boolean {
         return when (button) {
             PocketButton.B -> {
