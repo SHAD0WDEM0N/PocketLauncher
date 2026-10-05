@@ -77,16 +77,14 @@ class NativeFrameView(context: Context) : View(context), Choreographer.FrameCall
         val current = bitmap ?: return
         val src = Rect(0, 0, current.width, current.height)
 
-        val maxScale = minOf(
+        // Fill as much of the display as possible while preserving the
+        // original aspect ratio. Nearest-neighbour filtering remains disabled,
+        // so this stays crisp without the large top/bottom bars caused by
+        // integer-only scaling.
+        val scale = minOf(
             width.toFloat() / current.width.toFloat(),
             height.toFloat() / current.height.toFloat(),
         )
-
-        // Prefer an integer scale so source pixels map cleanly to whole display
-        // pixels. Fall back to fit scaling only if the surface is smaller than
-        // the native framebuffer.
-        val integerScale = kotlin.math.floor(maxScale).coerceAtLeast(1f)
-        val scale = if (maxScale >= 1f) integerScale else maxScale
 
         val drawWidth = (current.width * scale).toInt()
         val drawHeight = (current.height * scale).toInt()
