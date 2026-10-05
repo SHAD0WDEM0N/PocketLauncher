@@ -128,6 +128,11 @@ bool CoreLoader::loadGame(const std::string& romPath) {
 
     game_loaded_ = true;
     frame_count_ = 0;
+    input_mask_.store(0);
+    {
+        std::lock_guard<std::mutex> lock(audio_mutex_);
+        audio_pcm_.clear();
+    }
     {
         std::lock_guard<std::mutex> lock(frame_mutex_);
         frame_rgba_.clear();
@@ -137,8 +142,9 @@ bool CoreLoader::loadGame(const std::string& romPath) {
 
     retro_system_av_info av{};
     retro_get_system_av_info_(&av);
-    LOGI("Game loaded. Base geometry: %ux%u @ %.3f fps",
-         av.geometry.base_width, av.geometry.base_height, av.timing.fps);
+    audio_sample_rate_ = av.timing.sample_rate;
+    LOGI("Game loaded. Base geometry: %ux%u @ %.3f fps / %.1f Hz audio",
+         av.geometry.base_width, av.geometry.base_height, av.timing.fps, av.timing.sample_rate);
     return true;
 }
 
@@ -146,6 +152,12 @@ void CoreLoader::unloadGame() {
     if (game_loaded_ && retro_unload_game_) retro_unload_game_();
     game_loaded_ = false;
     frame_count_ = 0;
+    input_mask_.store(0);
+    {
+        std::lock_guard<std::mutex> audioLock(audio_mutex_);
+        audio_pcm_.clear();
+    }
+    audio_sample_rate_ = 0.0;
     std::lock_guard<std::mutex> lock(frame_mutex_);
     frame_rgba_.clear();
     frame_width_ = 0;
@@ -281,7 +293,57 @@ void CoreLoader::videoCallback(const void* data, unsigned width, unsigned height
     if (active_) active_->onVideoRefresh(data, width, height, pitch);
 }
 
-void CoreLoader::audioCallback(int16_t, int16_t) {}
-size_t CoreLoader::audioBatchCallback(const int16_t*, size_t frames) { return frames; }
+void CoreLoader::setInputMask(uint32_t mask) {
+    input_mask_.store(mask, std::memory_order_relaxed);
+}
+
+double CoreLoader::audioSampleRate() const {
+    return audio_sample_rate_;
+}
+
+std::vector<int16_t> CoreLoader::drainAudio() {
+    std::lock_guard<std::mutex> lock(audio_mutex_);
+    std::vector<int16_t> out;
+    out.swap(audio_pcm_);
+    return out;
+}
+
+void CoreLoader::onAudioSample(int16_t left, int16_t right) {
+    std::lock_guard<std::mutex> lock(audio_mutex_);
+    audio_pcm_.push_back(left);
+    audio_pcm_.push_back(right);
+    if (audio_pcm_.size() > 262144) {
+        audio_pcm_.erase(audio_pcm_.begin(), audio_pcm_.begin() + 131072);
+    }
+}
+
+size_t CoreLoader::onAudioBatch(const int16_t* data, size_t frames) {
+    if (!data || frames == 0) return frames;
+    std::lock_guard<std::mutex> lock(audio_mutex_);
+    const size_t samples = frames * 2;
+    audio_pcm_.insert(audio_pcm_.end(), data, data + samples);
+    if (audio_pcm_.size() > 262144) {
+        audio_pcm_.erase(audio_pcm_.begin(), audio_pcm_.begin() + 131072);
+    }
+    return frames;
+}
+
+int16_t CoreLoader::onInputState(unsigned port, unsigned device, unsigned index, unsigned id) {
+    if (port != 0 || device != RETRO_DEVICE_JOYPAD || index != 0 || id > 31) return 0;
+    const uint32_t mask = input_mask_.load(std::memory_order_relaxed);
+    return (mask & (1u << id)) ? 1 : 0;
+}
+
+void CoreLoader::audioCallback(int16_t left, int16_t right) {
+    if (active_) active_->onAudioSample(left, right);
+}
+
+size_t CoreLoader::audioBatchCallback(const int16_t* data, size_t frames) {
+    return active_ ? active_->onAudioBatch(data, frames) : frames;
+}
+
 void CoreLoader::inputPollCallback() {}
-int16_t CoreLoader::inputStateCallback(unsigned, unsigned, unsigned, unsigned) { return 0; }
+
+int16_t CoreLoader::inputStateCallback(unsigned port, unsigned device, unsigned index, unsigned id) {
+    return active_ ? active_->onInputState(port, device, index, id) : 0;
+}
