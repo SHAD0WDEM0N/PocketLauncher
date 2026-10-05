@@ -43,6 +43,34 @@ JNIEXPORT jstring JNICALL
 Java_com_example_pocketlauncher_engine_PocketEngine_nativeGetCoreError(
         JNIEnv* env, jobject thiz);
 
+JNIEXPORT jboolean JNICALL
+Java_com_example_pocketlauncher_engine_PocketEngine_nativeLoadGame(
+        JNIEnv* env, jobject thiz, jstring romPath);
+
+JNIEXPORT void JNICALL
+Java_com_example_pocketlauncher_engine_PocketEngine_nativeUnloadGame(
+        JNIEnv* env, jobject thiz);
+
+JNIEXPORT jboolean JNICALL
+Java_com_example_pocketlauncher_engine_PocketEngine_nativeRunFrame(
+        JNIEnv* env, jobject thiz);
+
+JNIEXPORT jint JNICALL
+Java_com_example_pocketlauncher_engine_PocketEngine_nativeGetFrameWidth(
+        JNIEnv* env, jobject thiz);
+
+JNIEXPORT jint JNICALL
+Java_com_example_pocketlauncher_engine_PocketEngine_nativeGetFrameHeight(
+        JNIEnv* env, jobject thiz);
+
+JNIEXPORT jlong JNICALL
+Java_com_example_pocketlauncher_engine_PocketEngine_nativeGetFrameCount(
+        JNIEnv* env, jobject thiz);
+
+JNIEXPORT jintArray JNICALL
+Java_com_example_pocketlauncher_engine_PocketEngine_nativeCopyFrameRgba(
+        JNIEnv* env, jobject thiz);
+
 #ifdef __cplusplus
 }
 #endif
