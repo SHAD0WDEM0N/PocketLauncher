@@ -1,0 +1,126 @@
+package com.example.pocketlauncher.ui.common
+
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.unit.dp
+import com.example.pocketlauncher.theme.PocketAmber
+import com.example.pocketlauncher.theme.PocketWhiteDim
+import com.example.pocketlauncher.theme.PocketWhiteMuted
+
+@Composable
+fun ConsoleMenuScreen(
+    title: String,
+    items: List<String>,
+    selectedIndex: Int,
+    footer: String = "A  SELECT     B  BACK",
+    subtitle: String? = null,
+) {
+    val metrics = pocketLayoutMetrics()
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .padding(horizontal = metrics.horizontalPadding),
+    ) {
+        Spacer(Modifier.height(metrics.topPadding))
+
+        Text(
+            text = title,
+            style = MaterialTheme.typography.displayLarge.merge(
+                TextStyle(
+                    fontSize = metrics.titleSize,
+                    letterSpacing = metrics.titleTracking,
+                )
+            ),
+            color = MaterialTheme.colorScheme.onBackground,
+            maxLines = 1,
+        )
+
+        Spacer(Modifier.height(8.dp))
+        HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
+
+        if (subtitle != null) {
+            Spacer(Modifier.height(12.dp))
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall.merge(
+                    TextStyle(fontSize = metrics.secondaryTextSize)
+                ),
+                color = PocketWhiteMuted,
+            )
+        }
+
+        Spacer(Modifier.height(metrics.sectionGap))
+
+        items.forEachIndexed { index, label ->
+            ConsoleMenuRow(
+                label = label,
+                selected = index == selectedIndex,
+                metrics = metrics,
+            )
+        }
+
+        Spacer(Modifier.weight(1f))
+
+        HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
+        Spacer(Modifier.height(12.dp))
+        Text(
+            text = footer,
+            style = MaterialTheme.typography.labelSmall.merge(
+                TextStyle(fontSize = metrics.hintTextSize)
+            ),
+            color = PocketWhiteMuted,
+        )
+        Spacer(Modifier.height(24.dp))
+    }
+}
+
+@Composable
+private fun ConsoleMenuRow(
+    label: String,
+    selected: Boolean,
+    metrics: PocketLayoutMetrics,
+) {
+    val alpha by animateFloatAsState(
+        targetValue = if (selected) 1f else 0.42f,
+        animationSpec = tween(120),
+        label = "consoleMenuAlpha",
+    )
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(metrics.rowHeight)
+            .alpha(alpha),
+    ) {
+        Text(
+            text = if (selected) ">" else " ",
+            style = MaterialTheme.typography.bodyLarge.merge(
+                TextStyle(fontSize = metrics.menuTextSize)
+            ),
+            color = PocketAmber,
+            modifier = Modifier.width(32.dp),
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyLarge.merge(
+                TextStyle(fontSize = metrics.menuTextSize)
+            ),
+            color = if (selected) MaterialTheme.colorScheme.onBackground else PocketWhiteDim,
+            maxLines = 1,
+        )
+    }
+}
