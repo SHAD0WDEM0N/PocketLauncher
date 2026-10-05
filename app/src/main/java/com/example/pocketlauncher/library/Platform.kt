@@ -8,18 +8,22 @@ package com.example.pocketlauncher.library
  */
 enum class Platform(
     val displayName: String,
+    val manufacturer: String,
     val extensions: Set<String>,
 ) {
     GB(
         displayName = "Game Boy",
+        manufacturer = "Nintendo",
         extensions = setOf("gb"),
     ),
     GBC(
         displayName = "Game Boy Color",
+        manufacturer = "Nintendo",
         extensions = setOf("gbc"),
     ),
     GBA(
         displayName = "Game Boy Advance",
+        manufacturer = "Nintendo",
         extensions = setOf("gba"),
     ),
 }
