@@ -9,10 +9,24 @@ import android.os.SystemClock
 import android.view.Choreographer
 import android.view.View
 import com.example.pocketlauncher.engine.PocketEngine
+import com.example.pocketlauncher.engine.VideoFilterMode
+import com.example.pocketlauncher.engine.VideoScaleMode
 
 class NativeFrameView(context: Context) : View(context), Choreographer.FrameCallback {
 
     private val paint = Paint().apply { isFilterBitmap = false; isAntiAlias = false }
+    var scaleMode: VideoScaleMode = VideoScaleMode.FIT
+        set(value) {
+            field = value
+            invalidate()
+        }
+    var filterMode: VideoFilterMode = VideoFilterMode.SHARP
+        set(value) {
+            field = value
+            paint.isFilterBitmap = value == VideoFilterMode.SMOOTH
+            paint.isAntiAlias = value == VideoFilterMode.SMOOTH
+            invalidate()
+        }
     private val debugPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = android.graphics.Color.WHITE
         textSize = 28f
@@ -77,14 +91,14 @@ class NativeFrameView(context: Context) : View(context), Choreographer.FrameCall
         val current = bitmap ?: return
         val src = Rect(0, 0, current.width, current.height)
 
-        // Fill as much of the display as possible while preserving the
-        // original aspect ratio. Nearest-neighbour filtering remains disabled,
-        // so this stays crisp without the large top/bottom bars caused by
-        // integer-only scaling.
-        val scale = minOf(
+        val maxScale = minOf(
             width.toFloat() / current.width.toFloat(),
             height.toFloat() / current.height.toFloat(),
         )
+        val scale = when (scaleMode) {
+            VideoScaleMode.FIT -> maxScale
+            VideoScaleMode.INTEGER -> kotlin.math.floor(maxScale).coerceAtLeast(1f)
+        }
 
         val drawWidth = (current.width * scale).toInt()
         val drawHeight = (current.height * scale).toInt()
