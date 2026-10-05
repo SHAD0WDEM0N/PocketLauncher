@@ -32,6 +32,7 @@ fun MainNavigation(
                 selectedIndex = uiState.menuIndex,
                 menuItems = menuItems,
                 manufacturers = Platform.entries.associate { it.displayName to it.manufacturer },
+                releaseYears = Platform.entries.associate { it.displayName to it.releaseYear },
             )
         }
 
