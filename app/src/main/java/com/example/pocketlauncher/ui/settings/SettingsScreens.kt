@@ -75,3 +75,29 @@ fun SystemManagerScreen(
         footer = "A  TOGGLE SYSTEM     B  BACK",
     )
 }
+
+
+@Composable
+fun CoreDownloadsScreen(
+    installed: Boolean,
+    downloading: Boolean,
+    status: String,
+) {
+    val label = when {
+        downloading -> "mGBA     DOWNLOADING..."
+        installed -> "mGBA     INSTALLED"
+        else -> "mGBA     NOT INSTALLED"
+    }
+
+    ConsoleMenuScreen(
+        title = "CORE DOWNLOADS",
+        subtitle = status,
+        items = listOf(label),
+        selectedIndex = 0,
+        footer = if (installed) {
+            "A  VERIFY / LOAD     X  REMOVE     B  BACK"
+        } else {
+            "A  DOWNLOAD mGBA     B  BACK"
+        },
+    )
+}
