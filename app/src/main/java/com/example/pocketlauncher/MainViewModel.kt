@@ -180,7 +180,21 @@ class MainViewModel(
         val platforms = enabledPlatformsInOrder()
         val menuSize = platforms.size + 2
 
-        if (moveMenu(button, menuSize)) return true
+        when (button) {
+            PocketButton.LEFT, PocketButton.UP -> {
+                _uiState.update {
+                    it.copy(menuIndex = (it.menuIndex - 1 + menuSize) % menuSize)
+                }
+                return true
+            }
+            PocketButton.RIGHT, PocketButton.DOWN -> {
+                _uiState.update {
+                    it.copy(menuIndex = (it.menuIndex + 1) % menuSize)
+                }
+                return true
+            }
+            else -> Unit
+        }
 
         return when (button) {
             PocketButton.A -> {
