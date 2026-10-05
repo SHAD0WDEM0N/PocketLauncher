@@ -83,6 +83,8 @@ fun MainNavigation(
             selectedStateSummary = uiState.selectedStateSummary,
             onScreenMenuIconEnabled = uiState.onScreenMenuIconEnabled,
             onMenuIconClick = viewModel::toggleInGameMenuFromTouch,
+            onMenuItemClick = viewModel::onEmulationMenuTouch,
+            onStateSlotChange = viewModel::onStateSlotTouch,
         )
 
         Screen.INPUT_TEST -> InputTestScreen(
