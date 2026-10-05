@@ -27,6 +27,8 @@ object PocketInputMapper {
         KeyEvent.KEYCODE_BUTTON_R1    to PocketButton.R1,
         KeyEvent.KEYCODE_BUTTON_L2    to PocketButton.L2,
         KeyEvent.KEYCODE_BUTTON_R2    to PocketButton.R2,
+        KeyEvent.KEYCODE_BUTTON_THUMBL to PocketButton.L3,
+        KeyEvent.KEYCODE_BUTTON_THUMBR to PocketButton.R3,
         KeyEvent.KEYCODE_BUTTON_START to PocketButton.START,
         KeyEvent.KEYCODE_BUTTON_SELECT to PocketButton.SELECT,
         KeyEvent.KEYCODE_DPAD_UP      to PocketButton.UP,
