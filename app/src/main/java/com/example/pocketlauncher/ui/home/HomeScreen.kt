@@ -1,6 +1,9 @@
 package com.example.pocketlauncher.ui.home
 
+import android.graphics.BitmapFactory
+import android.util.Base64
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -21,6 +24,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
@@ -28,9 +32,13 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.example.pocketlauncher.R
 import com.example.pocketlauncher.theme.PocketAmber
 import com.example.pocketlauncher.theme.PocketGreen
 import com.example.pocketlauncher.theme.PocketWhiteDim
@@ -157,12 +165,44 @@ private fun ConsoleCard(
 
         Spacer(Modifier.weight(1f))
 
-        HardwareRender(
-            label = label,
-            selected = selected,
-            modifier = Modifier
-                .align(Alignment.CenterHorizontally)
-                .size(width = 124.dp, height = 92.dp),
+        if (label == "Game Boy Advance") {
+            GeneratedGbaArt(
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .size(width = 138.dp, height = 104.dp),
+            )
+        } else {
+            HardwareRender(
+                label = label,
+                selected = selected,
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .size(width = 124.dp, height = 92.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun GeneratedGbaArt(
+    modifier: Modifier = Modifier,
+) {
+    val context = LocalContext.current
+    val bitmap = remember {
+        val encoded = context.resources.openRawResource(R.raw.gba_console_home_b64)
+            .bufferedReader()
+            .use { it.readText() }
+            .trim()
+        val bytes = Base64.decode(encoded, Base64.DEFAULT)
+        BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap()
+    }
+
+    if (bitmap != null) {
+        Image(
+            bitmap = bitmap,
+            contentDescription = "Game Boy Advance console artwork",
+            modifier = modifier,
+            contentScale = ContentScale.Fit,
         )
     }
 }
