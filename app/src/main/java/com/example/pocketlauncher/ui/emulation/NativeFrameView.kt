@@ -1,0 +1,73 @@
+package com.example.pocketlauncher.ui.emulation
+
+import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.Rect
+import android.view.Choreographer
+import android.view.View
+import com.example.pocketlauncher.engine.PocketEngine
+
+class NativeFrameView(context: Context) : View(context), Choreographer.FrameCallback {
+
+    private val paint = Paint(Paint.FILTER_BITMAP_FLAG)
+    private var bitmap: Bitmap? = null
+    private var lastFrameCount = -1L
+    private var running = true
+
+    init {
+        isFocusable = false
+        Choreographer.getInstance().postFrameCallback(this)
+    }
+
+    override fun doFrame(frameTimeNanos: Long) {
+        if (!running) return
+        invalidate()
+        Choreographer.getInstance().postFrameCallback(this)
+    }
+
+    override fun onDraw(canvas: Canvas) {
+        super.onDraw(canvas)
+
+        val frameCount = PocketEngine.frameCount()
+        if (frameCount != lastFrameCount) {
+            val width = PocketEngine.frameWidth()
+            val height = PocketEngine.frameHeight()
+            val pixels = PocketEngine.copyFrameRgba()
+
+            if (width > 0 && height > 0 && pixels.size == width * height) {
+                var current = bitmap
+                if (current == null || current.width != width || current.height != height) {
+                    current = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+                    bitmap = current
+                }
+                current.setPixels(pixels, 0, width, 0, 0, width, height)
+                lastFrameCount = frameCount
+            }
+        }
+
+        val current = bitmap ?: return
+        val src = Rect(0, 0, current.width, current.height)
+
+        val scale = minOf(
+            width.toFloat() / current.width.toFloat(),
+            height.toFloat() / current.height.toFloat(),
+        )
+        val drawWidth = (current.width * scale).toInt()
+        val drawHeight = (current.height * scale).toInt()
+        val left = (width - drawWidth) / 2
+        val top = (height - drawHeight) / 2
+        val dst = Rect(left, top, left + drawWidth, top + drawHeight)
+
+        canvas.drawBitmap(current, src, dst, paint)
+    }
+
+    override fun onDetachedFromWindow() {
+        running = false
+        Choreographer.getInstance().removeFrameCallback(this)
+        bitmap?.recycle()
+        bitmap = null
+        super.onDetachedFromWindow()
+    }
+}
