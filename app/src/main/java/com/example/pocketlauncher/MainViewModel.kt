@@ -5,7 +5,8 @@ import android.net.Uri
 import android.view.KeyEvent
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.pocketlauncher.engine.PocketEngine\nimport com.example.pocketlauncher.engine.CoreDownloadManager
+import com.example.pocketlauncher.engine.PocketEngine
+import com.example.pocketlauncher.engine.CoreDownloadManager
 import com.example.pocketlauncher.input.PocketButton
 import com.example.pocketlauncher.input.PocketInputMapper
 import com.example.pocketlauncher.library.GameEntry
@@ -27,6 +28,7 @@ enum class Screen {
     FRONT_END_SETTINGS,
     EMULATOR_SETTINGS,
     SYSTEM_MANAGER,
+    CORE_DOWNLOADS,
     INPUT_TEST,
 }
 
@@ -48,6 +50,10 @@ data class PocketUiState(
 
     val folderPickerRequested: Boolean = false,
     val systemSettingsRequested: Boolean = false,
+
+    val coreInstalled: Boolean = false,
+    val coreDownloading: Boolean = false,
+    val coreStatus: String = "mGBA not installed",
 )
 
 class MainViewModel(
@@ -56,12 +62,19 @@ class MainViewModel(
 
     private val folderStore = RomFolderStore(application)
     private val romScanner = RomScanner(application)
-    private val systemStore = SystemLibraryStore(application)\n    private val coreDownloadManager = CoreDownloadManager(application)
+    private val systemStore = SystemLibraryStore(application)
+    private val coreDownloadManager = CoreDownloadManager(application)
 
     private val _uiState = MutableStateFlow(
         PocketUiState(
             engineReady = PocketEngine.getStatus()?.equals("READY", ignoreCase = true) == true,
-            enabledPlatforms = systemStore.getEnabledPlatforms(),\n            coreInstalled = coreDownloadManager.installedCorePath() != null,\n            coreStatus = if (coreDownloadManager.installedCorePath() != null) "mGBA installed" else "mGBA not installed",
+            enabledPlatforms = systemStore.getEnabledPlatforms(),
+            coreInstalled = coreDownloadManager.installedCorePath() != null,
+            coreStatus = if (coreDownloadManager.installedCorePath() != null) {
+                "mGBA installed"
+            } else {
+                "mGBA not installed"
+            },
         )
     )
     val uiState: StateFlow<PocketUiState> = _uiState.asStateFlow()
@@ -82,6 +95,7 @@ class MainViewModel(
             Screen.FRONT_END_SETTINGS -> handleFrontEndSettingsInput(button)
             Screen.EMULATOR_SETTINGS -> handleEmulatorSettingsInput(button)
             Screen.SYSTEM_MANAGER -> handleSystemManagerInput(button)
+            Screen.CORE_DOWNLOADS -> handleCoreDownloadsInput(button)
             Screen.INPUT_TEST -> handleInputTestInput(button)
         }
     }
