@@ -1,10 +1,13 @@
 package com.example.pocketlauncher.ui.emulation
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
@@ -31,6 +34,8 @@ fun EmulationScreen(
     menuHotkey: MenuHotkey,
     selectedStateSlot: Int,
     selectedStateSummary: String,
+    onScreenMenuIconEnabled: Boolean,
+    onMenuIconClick: () -> Unit,
 ) {
     Box(
         modifier = Modifier
@@ -50,6 +55,24 @@ fun EmulationScreen(
             },
             modifier = Modifier.fillMaxSize(),
         )
+
+        if (onScreenMenuIconEnabled && !menuOpen) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(14.dp)
+                    .size(42.dp)
+                    .background(Color.Black.copy(alpha = 0.34f), CircleShape)
+                    .clickable(onClick = onMenuIconClick),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = "≡",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = Color.White.copy(alpha = 0.72f),
+                )
+            }
+        }
 
         if (menuOpen) {
             Box(
@@ -86,6 +109,7 @@ fun EmulationScreen(
                     title = "CONTROLLER"
                     items = listOf(
                         "Menu Hotkey   ${hotkeyLabel(menuHotkey)}",
+                        "On-screen Menu Icon   ${if (onScreenMenuIconEnabled) "On" else "Off"}",
                         "Back",
                     )
                 }
