@@ -74,6 +74,9 @@ object PocketEngine {
         if (loaded) runCatching { nativeSetInputMask(mask) }
     }
 
+    fun videoFps(): Double =
+        if (loaded) runCatching { nativeGetVideoFps() }.getOrDefault(60.0) else 60.0
+
     fun audioSampleRate(): Double =
         if (loaded) runCatching { nativeGetAudioSampleRate() }.getOrDefault(0.0) else 0.0
 
@@ -109,4 +112,5 @@ object PocketEngine {
     private external fun nativeSetInputMask(mask: Int)
     private external fun nativeGetAudioSampleRate(): Double
     private external fun nativeDrainAudio(): ShortArray
+    private external fun nativeGetVideoFps(): Double
 }
