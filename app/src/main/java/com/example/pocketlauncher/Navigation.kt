@@ -3,6 +3,7 @@ package com.example.pocketlauncher
 import androidx.compose.runtime.Composable
 import com.example.pocketlauncher.library.Platform
 import com.example.pocketlauncher.ui.home.HomeScreen
+import com.example.pocketlauncher.ui.emulation.EmulationScreen
 import com.example.pocketlauncher.ui.input.InputTestScreen
 import com.example.pocketlauncher.ui.platform.PlatformScreen
 import com.example.pocketlauncher.ui.settings.EmulatorSettingsScreen
@@ -68,6 +69,14 @@ fun MainNavigation(
             installed = uiState.coreInstalled,
             downloading = uiState.coreDownloading,
             status = uiState.coreStatus,
+        )
+
+        Screen.EMULATION -> EmulationScreen(
+            title = uiState.emulationTitle,
+            status = uiState.emulationStatus,
+            pixels = uiState.emulationFrame,
+            width = uiState.emulationWidth,
+            height = uiState.emulationHeight,
         )
 
         Screen.INPUT_TEST -> InputTestScreen(
