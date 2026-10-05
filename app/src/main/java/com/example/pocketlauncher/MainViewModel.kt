@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.pocketlauncher.engine.PocketEngine
 import com.example.pocketlauncher.engine.CoreDownloadManager
 import com.example.pocketlauncher.engine.RomRuntimeStager
+import com.example.pocketlauncher.engine.EngineAudioPlayer
 import com.example.pocketlauncher.input.PocketButton
 import com.example.pocketlauncher.input.PocketInputMapper
 import com.example.pocketlauncher.library.GameEntry
@@ -76,6 +77,8 @@ class MainViewModel(
     private val systemStore = SystemLibraryStore(application)
     private val coreDownloadManager = CoreDownloadManager(application)
     private val romRuntimeStager = RomRuntimeStager(application)
+    private val engineAudioPlayer = EngineAudioPlayer()
+    private var emulationInputMask: Int = 0
 
     private val _uiState = MutableStateFlow(
         PocketUiState(
@@ -98,6 +101,10 @@ class MainViewModel(
             recordInputEvent(button, pressed)
         }
 
+        if (_uiState.value.screen == Screen.EMULATION) {
+            return handleEmulationInput(button, pressed)
+        }
+
         if (!pressed) return true
 
         return when (_uiState.value.screen) {
@@ -108,7 +115,7 @@ class MainViewModel(
             Screen.EMULATOR_SETTINGS -> handleEmulatorSettingsInput(button)
             Screen.SYSTEM_MANAGER -> handleSystemManagerInput(button)
             Screen.CORE_DOWNLOADS -> handleCoreDownloadsInput(button)
-            Screen.EMULATION -> handleEmulationInput(button)
+            Screen.EMULATION -> true
             Screen.INPUT_TEST -> handleInputTestInput(button)
         }
     }
@@ -390,14 +397,45 @@ class MainViewModel(
         }
     }
 
-    private fun handleEmulationInput(button: PocketButton): Boolean {
-        return when (button) {
-            PocketButton.B -> {
-                stopGame()
-                true
-            }
-            else -> true
+    private fun handleEmulationInput(button: PocketButton, pressed: Boolean): Boolean {
+        if (button == PocketButton.MENU && pressed) {
+            stopGame()
+            return true
         }
+
+        val bit = when (button) {
+            PocketButton.B -> 0
+            PocketButton.Y -> 1
+            PocketButton.SELECT -> 2
+            PocketButton.START -> 3
+            PocketButton.UP -> 4
+            PocketButton.DOWN -> 5
+            PocketButton.LEFT -> 6
+            PocketButton.RIGHT -> 7
+            PocketButton.A -> 8
+            PocketButton.X -> 9
+            PocketButton.L1 -> 10
+            PocketButton.R1 -> 11
+            else -> null
+        }
+
+        if (bit != null) {
+            emulationInputMask = if (pressed) {
+                emulationInputMask or (1 shl bit)
+            } else {
+                emulationInputMask and (1 shl bit).inv()
+            }
+
+            PocketEngine.setInputMask(emulationInputMask)
+        }
+
+        val startHeld = (emulationInputMask and (1 shl 3)) != 0
+        val selectHeld = (emulationInputMask and (1 shl 2)) != 0
+        if (startHeld && selectHeld) {
+            stopGame()
+        }
+
+        return true
     }
 
     private fun startGame(game: GameEntry) {
@@ -446,6 +484,10 @@ class MainViewModel(
                 return@launch
             }
 
+            emulationInputMask = 0
+            PocketEngine.setInputMask(0)
+            engineAudioPlayer.start(PocketEngine.audioSampleRate())
+
             _uiState.update {
                 it.copy(
                     screen = Screen.EMULATION,
@@ -467,6 +509,11 @@ class MainViewModel(
                         it.copy(emulationStatus = "Emulation stopped unexpectedly.")
                     }
                     break
+                }
+
+                val audio = PocketEngine.drainAudio()
+                if (audio.isNotEmpty()) {
+                    engineAudioPlayer.write(audio)
                 }
 
                 val frameNumber = PocketEngine.frameCount()
@@ -494,6 +541,9 @@ class MainViewModel(
     }
 
     private fun stopGame() {
+        emulationInputMask = 0
+        PocketEngine.setInputMask(0)
+        engineAudioPlayer.stop()
         PocketEngine.unloadGame()
         romRuntimeStager.clear()
         _uiState.update {
