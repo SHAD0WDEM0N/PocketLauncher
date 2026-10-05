@@ -1,6 +1,7 @@
 #ifndef POCKET_CORE_LOADER_H
 #define POCKET_CORE_LOADER_H
 
+#include <atomic>
 #include <cstdint>
 #include <mutex>
 #include <string>
@@ -32,6 +33,10 @@ public:
     uint64_t frameCount() const;
     std::vector<uint32_t> copyFrameRgba() const;
 
+    void setInputMask(uint32_t mask);
+    double audioSampleRate() const;
+    std::vector<int16_t> drainAudio();
+
 private:
     void* handle_ = nullptr;
     std::string last_error_;
@@ -44,6 +49,11 @@ private:
     unsigned frame_width_ = 0;
     unsigned frame_height_ = 0;
     uint64_t frame_count_ = 0;
+
+    std::atomic<uint32_t> input_mask_{0};
+    mutable std::mutex audio_mutex_;
+    std::vector<int16_t> audio_pcm_;
+    double audio_sample_rate_ = 0.0;
 
     using retro_api_version_t = unsigned (*)();
     using retro_get_system_info_t = void (*)(struct retro_system_info*);
@@ -79,6 +89,9 @@ private:
     bool bind(T& target, const char* symbol);
 
     void onVideoRefresh(const void* data, unsigned width, unsigned height, size_t pitch);
+    void onAudioSample(int16_t left, int16_t right);
+    size_t onAudioBatch(const int16_t* data, size_t frames);
+    int16_t onInputState(unsigned port, unsigned device, unsigned index, unsigned id);
     bool onEnvironment(unsigned cmd, void* data);
 
     static CoreLoader* active_;
