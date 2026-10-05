@@ -501,6 +501,7 @@ class MainViewModel(
     private fun launchEmulationLoop() {
         viewModelScope.launch(Dispatchers.Default) {
             var lastPublishedFrame = -1L
+            var geometryPublished = false
 
             while (isActive && _uiState.value.screen == Screen.EMULATION) {
                 if (!PocketEngine.runFrame()) {
@@ -510,21 +511,15 @@ class MainViewModel(
                     break
                 }
 
-                // mGBA produces one frame's worth of PCM each retro_run().
-                // A blocking AudioTrack write provides the timing clock and applies
-                // back-pressure instead of dropping samples or adding a fixed delay
-                // on top of emulation work.
+                // Keep the audio pacing fix: blocking AudioTrack writes provide
+                // back-pressure without adding an artificial sleep to every frame.
                 val audio = PocketEngine.drainAudio()
                 if (audio.isNotEmpty()) {
                     engineAudioPlayer.write(audio)
                 }
 
                 val frameNumber = PocketEngine.frameCount()
-
-                // Compose does not need a brand-new 240x160 IntArray at the full
-                // emulation rate. Publish every second frame (~30 fps UI) while the
-                // core itself continues running at mGBA's native ~60 fps.
-                if (frameNumber != lastPublishedFrame && frameNumber % 2L == 0L) {
+                if (frameNumber != lastPublishedFrame) {
                     val width = PocketEngine.frameWidth()
                     val height = PocketEngine.frameHeight()
                     val pixels = PocketEngine.copyFrameRgba()
@@ -532,12 +527,17 @@ class MainViewModel(
                     if (width > 0 && height > 0 && pixels.size == width * height) {
                         _uiState.update {
                             it.copy(
-                                emulationStatus = "mGBA  ·  ${width}×${height}  ·  frame $frameNumber",
+                                emulationStatus = if (geometryPublished) {
+                                    it.emulationStatus
+                                } else {
+                                    "mGBA  ·  ${width}×${height}"
+                                },
                                 emulationFrame = pixels,
                                 emulationWidth = width,
                                 emulationHeight = height,
                             )
                         }
+                        geometryPublished = true
                         lastPublishedFrame = frameNumber
                     }
                 }
