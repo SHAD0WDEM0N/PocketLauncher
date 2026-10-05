@@ -3,6 +3,43 @@
   "name": "Can you analyse and sum up",
   "createdAt": "2026-10-05T15:00:22.598Z",
   "filename": "64f5468d-d9d8-42dd-a172-b1791aa6ca3c.json",
-  "geminiStarted": false,
-  "messages": []
+  "geminiStarted": true,
+  "messages": [
+    {
+      "id": "f1ab78a0-5736-4c24-b7ba-835bad4a5627",
+      "role": "user",
+      "content": "Can you analyse and sum up the project attached",
+      "status": "pending",
+      "model": "claude-sonnet-4-6",
+      "client_type": "gemini-bridge",
+      "parent_message_id": null,
+      "created_at": "2026-10-05T15:00:24.213Z",
+      "sender": "ios",
+      "is_cancelled": false
+    },
+    {
+      "id": "3b809e62-f979-404e-b183-65167ffbccd6",
+      "role": "agent",
+      "content": "Now I have a thorough picture of the project. Let me write up the summary artifact.\nHere's a full breakdown of **PocketLauncher**:\n\n---\n\n## What It Is\n\nA **retro gaming \"console OS\"** for Android — specifically Android handhelds like the Retroid Pocket G2. Instead of launching external emulator apps, it embeds everything under one unified roof:\n\n```\nJetpack Compose UI → Native libretro Host (C++) → mGBA core → GB/GBC/GBA games\n```\n\nThe UX is deliberately console-like: pure dark theme, amber accents, 100% D-pad/button operated, immersive fullscreen with no Android chrome visible.\n\n---\n\n## Architecture\n\nIt's a clean **MVVM + single-activity** structure:\n\n- **[`MainActivity`](https://github.com/SHAD0WDEM0N/PocketLauncher/blob/master/app/src/main/java/com/example/pocketlauncher/MainActivity.kt)** — single Compose host, intercepts all raw `KeyEvent`s before Compose touches them, enforces immersive mode.\n- **[`MainViewModel`](https://github.com/SHAD0WDEM0N/PocketLauncher/blob/master/app/src/main/java/com/example/pocketlauncher/MainViewModel.kt)** — `StateFlow`-based single source of truth; handles screen routing and D-pad navigation logic.\n- **[`PocketInputMapper`](https://github.com/SHAD0WDEM0N/PocketLauncher/blob/master/app/src/main/java/com/example/pocketlauncher/input/PocketInputMapper.kt)** — translates raw Android keycodes to `PocketButton` enums; uses a layered device profile system for per-device overrides.\n- **[`pocket_engine.cpp`](https://github.com/SHAD0WDEM0N/PocketLauncher/blob/master/app/src/main/cpp/pocket_engine.cpp)** — C++20 JNI stub; currently just proves the Kotlin → NDK bridge works; will become the libretro host in Phase 2.\n\n---\n\n## Current Status — Phase 0 ✅ (v0.2.0)\n\nThe foundation is done: theme system, full-screen UI, controller routing, JNI bridge verified, and a built-in **Input Diagnostic Screen** (`Settings → Input Test`) that shows live button state + an event log. You can install a working APK from the [GitHub Releases](https://github.com/SHAD0WDEM0N/PocketLauncher/releases) page today.\n\n---\n\n## What's Next\n\nThe 6-phase roadmap goes: input abstraction → libretro C host → mGBA boot → ROM library scanner → save states → quick resume. The big milestone is **Phase 3**: the first actual GBA game booting inside the launcher without any app-switching.\n\nThe full summary (with architecture diagram, tech stack table, and roadmap) is in the artifact above.",
+      "status": "completed",
+      "model": "claude-sonnet-4-6",
+      "client_type": "gemini-bridge",
+      "parent_message_id": "f1ab78a0-5736-4c24-b7ba-835bad4a5627",
+      "created_at": "2026-10-05T15:01:39.163Z",
+      "sender": "macOS",
+      "is_cancelled": false
+    },
+    {
+      "id": "24b187c1-3d98-4623-a3b8-1d31c05ded3e",
+      "role": "user",
+      "content": "Can you assist on this and make me a test build based on your findings",
+      "status": "pending",
+      "model": "claude-sonnet-4-6",
+      "client_type": "gemini-bridge",
+      "parent_message_id": null,
+      "created_at": "2026-10-05T15:02:13.578Z",
+      "sender": "ios",
+      "is_cancelled": false
+    }
+  ]
 }
