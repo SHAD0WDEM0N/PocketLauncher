@@ -6,7 +6,7 @@ object RomNameCleaner {
         Regex("""^\s*\d{1,5}\s*[-._]\s*""")
 
     private val metadataGroup =
-        Regex("""\s*[\[(]([^\])]+)[\])]""")
+        Regex("""\s*[\[(]([^\]\)]+)[\])]""")
 
     private val metadataTokens = listOf(
         "usa", "europe", "japan", "world", "australia", "korea", "china",
