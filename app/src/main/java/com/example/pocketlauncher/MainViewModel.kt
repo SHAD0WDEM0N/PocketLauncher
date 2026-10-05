@@ -10,6 +10,11 @@ import com.example.pocketlauncher.engine.CoreDownloadManager
 import com.example.pocketlauncher.engine.RomRuntimeStager
 import com.example.pocketlauncher.engine.EngineAudioPlayer
 import com.example.pocketlauncher.engine.BatterySaveManager
+import com.example.pocketlauncher.engine.SaveStateManager
+import com.example.pocketlauncher.engine.EmulationPreferencesStore
+import com.example.pocketlauncher.engine.MenuHotkey
+import com.example.pocketlauncher.engine.VideoFilterMode
+import com.example.pocketlauncher.engine.VideoScaleMode
 import com.example.pocketlauncher.input.PocketButton
 import com.example.pocketlauncher.input.PocketInputMapper
 import com.example.pocketlauncher.library.GameEntry
@@ -26,6 +31,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.util.concurrent.locks.LockSupport
+
+enum class EmulationMenuPage {
+    MAIN,
+    DISPLAY,
+    CONTROLLER,
+}
 
 enum class Screen {
     HOME,
@@ -68,7 +79,12 @@ data class PocketUiState(
     val emulationWidth: Int = 0,
     val emulationHeight: Int = 0,
     val emulationMenuOpen: Boolean = false,
+    val emulationMenuPage: EmulationMenuPage = EmulationMenuPage.MAIN,
     val emulationMenuIndex: Int = 0,
+    val emulationMenuStatus: String = "",
+    val videoScaleMode: VideoScaleMode = VideoScaleMode.FIT,
+    val videoFilterMode: VideoFilterMode = VideoFilterMode.SHARP,
+    val menuHotkey: MenuHotkey = MenuHotkey.L3_R3,
 )
 
 class MainViewModel(
@@ -82,9 +98,14 @@ class MainViewModel(
     private val romRuntimeStager = RomRuntimeStager(application)
     private val engineAudioPlayer = EngineAudioPlayer()
     private val batterySaveManager = BatterySaveManager(application)
+    private val saveStateManager = SaveStateManager(application)
+    private val emulationPreferences = EmulationPreferencesStore(application)
     private var emulationInputMask: Int = 0
     private val emulationHeldButtons = mutableSetOf<PocketButton>()
     private var activeSavePath: String? = null
+    private var activeStatePath: String? = null
+    private var activeRomPath: String? = null
+    private var activeGame: GameEntry? = null
 
     private val _uiState = MutableStateFlow(
         PocketUiState(
@@ -96,6 +117,9 @@ class MainViewModel(
             } else {
                 "mGBA not installed"
             },
+            videoScaleMode = emulationPreferences.scaleMode(),
+            videoFilterMode = emulationPreferences.filterMode(),
+            menuHotkey = emulationPreferences.menuHotkey(),
         )
     )
     val uiState: StateFlow<PocketUiState> = _uiState.asStateFlow()
@@ -410,17 +434,16 @@ class MainViewModel(
             emulationHeldButtons -= button
         }
 
-        val menuChordHeld =
-            PocketButton.L3 in emulationHeldButtons && PocketButton.R3 in emulationHeldButtons
-
-        if (pressed && menuChordHeld) {
+        if (pressed && isMenuHotkeyHeld()) {
             emulationInputMask = 0
             PocketEngine.setInputMask(0)
             emulationHeldButtons.clear()
             _uiState.update {
                 it.copy(
                     emulationMenuOpen = !it.emulationMenuOpen,
+                    emulationMenuPage = EmulationMenuPage.MAIN,
                     emulationMenuIndex = 0,
+                    emulationMenuStatus = "",
                 )
             }
             return true
@@ -428,29 +451,53 @@ class MainViewModel(
 
         if (_uiState.value.emulationMenuOpen) {
             if (!pressed) return true
+            val state = _uiState.value
+            val itemCount = when (state.emulationMenuPage) {
+                EmulationMenuPage.MAIN -> 7
+                EmulationMenuPage.DISPLAY -> 3
+                EmulationMenuPage.CONTROLLER -> 2
+            }
 
             return when (button) {
                 PocketButton.UP -> {
                     _uiState.update {
-                        it.copy(emulationMenuIndex = (it.emulationMenuIndex - 1 + 2) % 2)
+                        it.copy(
+                            emulationMenuIndex = (it.emulationMenuIndex - 1 + itemCount) % itemCount,
+                            emulationMenuStatus = "",
+                        )
                     }
                     true
                 }
                 PocketButton.DOWN -> {
                     _uiState.update {
-                        it.copy(emulationMenuIndex = (it.emulationMenuIndex + 1) % 2)
+                        it.copy(
+                            emulationMenuIndex = (it.emulationMenuIndex + 1) % itemCount,
+                            emulationMenuStatus = "",
+                        )
                     }
                     true
                 }
-                PocketButton.A -> {
-                    when (_uiState.value.emulationMenuIndex) {
-                        0 -> _uiState.update { it.copy(emulationMenuOpen = false) }
-                        1 -> stopGame()
-                    }
+                PocketButton.A, PocketButton.LEFT, PocketButton.RIGHT -> {
+                    activateEmulationMenuItem()
                     true
                 }
                 PocketButton.B -> {
-                    _uiState.update { it.copy(emulationMenuOpen = false) }
+                    if (state.emulationMenuPage == EmulationMenuPage.MAIN) {
+                        _uiState.update {
+                            it.copy(
+                                emulationMenuOpen = false,
+                                emulationMenuStatus = "",
+                            )
+                        }
+                    } else {
+                        _uiState.update {
+                            it.copy(
+                                emulationMenuPage = EmulationMenuPage.MAIN,
+                                emulationMenuIndex = 0,
+                                emulationMenuStatus = "",
+                            )
+                        }
+                    }
                     true
                 }
                 else -> true
@@ -483,6 +530,149 @@ class MainViewModel(
         }
 
         return true
+    }
+
+    private fun isMenuHotkeyHeld(): Boolean = when (_uiState.value.menuHotkey) {
+        MenuHotkey.L3_R3 ->
+            PocketButton.L3 in emulationHeldButtons && PocketButton.R3 in emulationHeldButtons
+        MenuHotkey.START_SELECT ->
+            PocketButton.START in emulationHeldButtons && PocketButton.SELECT in emulationHeldButtons
+        MenuHotkey.L1_R1 ->
+            PocketButton.L1 in emulationHeldButtons && PocketButton.R1 in emulationHeldButtons
+    }
+
+    private fun activateEmulationMenuItem() {
+        val state = _uiState.value
+        when (state.emulationMenuPage) {
+            EmulationMenuPage.MAIN -> when (state.emulationMenuIndex) {
+                0 -> _uiState.update { it.copy(emulationMenuOpen = false, emulationMenuStatus = "") }
+                1 -> saveStateSlot()
+                2 -> loadStateSlot()
+                3 -> _uiState.update {
+                    it.copy(
+                        emulationMenuPage = EmulationMenuPage.DISPLAY,
+                        emulationMenuIndex = 0,
+                        emulationMenuStatus = "",
+                    )
+                }
+                4 -> _uiState.update {
+                    it.copy(
+                        emulationMenuPage = EmulationMenuPage.CONTROLLER,
+                        emulationMenuIndex = 0,
+                        emulationMenuStatus = "",
+                    )
+                }
+                5 -> restartGame()
+                6 -> stopGame()
+            }
+            EmulationMenuPage.DISPLAY -> when (state.emulationMenuIndex) {
+                0 -> {
+                    val next = if (state.videoScaleMode == VideoScaleMode.FIT) {
+                        VideoScaleMode.INTEGER
+                    } else {
+                        VideoScaleMode.FIT
+                    }
+                    emulationPreferences.setScaleMode(next)
+                    _uiState.update { it.copy(videoScaleMode = next) }
+                }
+                1 -> {
+                    val next = if (state.videoFilterMode == VideoFilterMode.SHARP) {
+                        VideoFilterMode.SMOOTH
+                    } else {
+                        VideoFilterMode.SHARP
+                    }
+                    emulationPreferences.setFilterMode(next)
+                    _uiState.update { it.copy(videoFilterMode = next) }
+                }
+                2 -> _uiState.update {
+                    it.copy(
+                        emulationMenuPage = EmulationMenuPage.MAIN,
+                        emulationMenuIndex = 3,
+                        emulationMenuStatus = "",
+                    )
+                }
+            }
+            EmulationMenuPage.CONTROLLER -> when (state.emulationMenuIndex) {
+                0 -> {
+                    val next = when (state.menuHotkey) {
+                        MenuHotkey.L3_R3 -> MenuHotkey.START_SELECT
+                        MenuHotkey.START_SELECT -> MenuHotkey.L1_R1
+                        MenuHotkey.L1_R1 -> MenuHotkey.L3_R3
+                    }
+                    emulationPreferences.setMenuHotkey(next)
+                    _uiState.update {
+                        it.copy(
+                            menuHotkey = next,
+                            emulationMenuStatus = "Menu shortcut updated",
+                        )
+                    }
+                }
+                1 -> _uiState.update {
+                    it.copy(
+                        emulationMenuPage = EmulationMenuPage.MAIN,
+                        emulationMenuIndex = 4,
+                        emulationMenuStatus = "",
+                    )
+                }
+            }
+        }
+    }
+
+    private fun saveStateSlot() {
+        val path = activeStatePath
+        if (path == null) {
+            _uiState.update { it.copy(emulationMenuStatus = "No active game") }
+            return
+        }
+
+        activeSavePath?.let { PocketEngine.saveSaveRam(it) }
+        val saved = PocketEngine.saveState(path)
+        _uiState.update {
+            it.copy(emulationMenuStatus = if (saved) "State saved · Slot 1" else "Save state failed")
+        }
+    }
+
+    private fun loadStateSlot() {
+        val path = activeStatePath
+        if (path == null) {
+            _uiState.update { it.copy(emulationMenuStatus = "No active game") }
+            return
+        }
+
+        val loaded = PocketEngine.loadState(path)
+        _uiState.update {
+            it.copy(emulationMenuStatus = if (loaded) "State loaded · Slot 1" else "No save state in Slot 1")
+        }
+    }
+
+    private fun restartGame() {
+        val romPath = activeRomPath
+        if (romPath == null) {
+            _uiState.update { it.copy(emulationMenuStatus = "No active game") }
+            return
+        }
+
+        activeSavePath?.let { PocketEngine.saveSaveRam(it) }
+        engineAudioPlayer.stop()
+        PocketEngine.unloadGame()
+
+        val restarted = PocketEngine.loadGame(romPath).isSuccess
+        if (restarted) {
+            activeSavePath?.let { PocketEngine.loadSaveRam(it) }
+            emulationInputMask = 0
+            PocketEngine.setInputMask(0)
+            engineAudioPlayer.start(PocketEngine.audioSampleRate())
+            _uiState.update {
+                it.copy(
+                    emulationMenuOpen = false,
+                    emulationMenuPage = EmulationMenuPage.MAIN,
+                    emulationMenuIndex = 0,
+                    emulationMenuStatus = "",
+                )
+            }
+        } else {
+            _uiState.update { it.copy(emulationMenuStatus = "Restart failed") }
+        }
     }
 
     private fun startGame(game: GameEntry) {
@@ -533,7 +723,10 @@ class MainViewModel(
                 return@launch
             }
 
+            activeGame = game
+            activeRomPath = staged.absolutePath
             activeSavePath = batterySaveManager.saveFile(game).absolutePath
+            activeStatePath = saveStateManager.slotFile(game, 0).absolutePath
             activeSavePath?.let { PocketEngine.loadSaveRam(it) }
 
             emulationInputMask = 0
@@ -545,7 +738,9 @@ class MainViewModel(
                     screen = Screen.EMULATION,
                     emulationStatus = "Starting ${game.displayName}...",
                     emulationMenuOpen = false,
+                    emulationMenuPage = EmulationMenuPage.MAIN,
                     emulationMenuIndex = 0,
+                    emulationMenuStatus = "",
                 )
             }
 
@@ -604,6 +799,9 @@ class MainViewModel(
         emulationHeldButtons.clear()
         activeSavePath?.let { PocketEngine.saveSaveRam(it) }
         activeSavePath = null
+        activeStatePath = null
+        activeRomPath = null
+        activeGame = null
         engineAudioPlayer.stop()
         PocketEngine.unloadGame()
         romRuntimeStager.clear()
@@ -614,6 +812,10 @@ class MainViewModel(
                 emulationFrame = IntArray(0),
                 emulationWidth = 0,
                 emulationHeight = 0,
+                emulationMenuOpen = false,
+                emulationMenuPage = EmulationMenuPage.MAIN,
+                emulationMenuIndex = 0,
+                emulationMenuStatus = "",
             )
         }
     }
