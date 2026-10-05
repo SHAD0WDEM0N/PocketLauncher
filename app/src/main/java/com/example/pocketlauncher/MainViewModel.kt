@@ -7,6 +7,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.pocketlauncher.engine.PocketEngine
 import com.example.pocketlauncher.engine.CoreDownloadManager
+import com.example.pocketlauncher.engine.RomRuntimeStager
 import com.example.pocketlauncher.input.PocketButton
 import com.example.pocketlauncher.input.PocketInputMapper
 import com.example.pocketlauncher.library.GameEntry
@@ -19,6 +20,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 enum class Screen {
@@ -29,6 +33,7 @@ enum class Screen {
     EMULATOR_SETTINGS,
     SYSTEM_MANAGER,
     CORE_DOWNLOADS,
+    EMULATION,
     INPUT_TEST,
 }
 
@@ -54,6 +59,12 @@ data class PocketUiState(
     val coreInstalled: Boolean = false,
     val coreDownloading: Boolean = false,
     val coreStatus: String = "mGBA not installed",
+
+    val emulationTitle: String = "",
+    val emulationStatus: String = "",
+    val emulationFrame: IntArray = IntArray(0),
+    val emulationWidth: Int = 0,
+    val emulationHeight: Int = 0,
 )
 
 class MainViewModel(
@@ -64,6 +75,7 @@ class MainViewModel(
     private val romScanner = RomScanner(application)
     private val systemStore = SystemLibraryStore(application)
     private val coreDownloadManager = CoreDownloadManager(application)
+    private val romRuntimeStager = RomRuntimeStager(application)
 
     private val _uiState = MutableStateFlow(
         PocketUiState(
@@ -96,6 +108,7 @@ class MainViewModel(
             Screen.EMULATOR_SETTINGS -> handleEmulatorSettingsInput(button)
             Screen.SYSTEM_MANAGER -> handleSystemManagerInput(button)
             Screen.CORE_DOWNLOADS -> handleCoreDownloadsInput(button)
+            Screen.EMULATION -> handleEmulationInput(button)
             Screen.INPUT_TEST -> handleInputTestInput(button)
         }
     }
@@ -341,6 +354,11 @@ class MainViewModel(
             PocketButton.A -> {
                 if (state.currentFolderUri == null) {
                     requestFolderPicker()
+                } else {
+                    val game = state.games.getOrNull(state.gameIndex)
+                    if (game != null && game.platform == Platform.GBA) {
+                        startGame(game)
+                    }
                 }
                 true
             }
@@ -369,6 +387,123 @@ class MainViewModel(
                 true
             }
             else -> false
+        }
+    }
+
+    private fun handleEmulationInput(button: PocketButton): Boolean {
+        return when (button) {
+            PocketButton.B -> {
+                stopGame()
+                true
+            }
+            else -> true
+        }
+    }
+
+    private fun startGame(game: GameEntry) {
+        if (_uiState.value.screen == Screen.EMULATION) return
+
+        _uiState.update {
+            it.copy(
+                emulationTitle = game.displayName,
+                emulationStatus = "Preparing ROM...",
+                emulationFrame = IntArray(0),
+                emulationWidth = 0,
+                emulationHeight = 0,
+            )
+        }
+
+        viewModelScope.launch {
+            val corePath = coreDownloadManager.installedCorePath()
+            if (corePath == null) {
+                _uiState.update {
+                    it.copy(emulationStatus = "mGBA is not installed. Install it in Emulator Settings → Core Downloads.")
+                }
+                return@launch
+            }
+
+            val staged = romRuntimeStager.stage(game.uri, game.fileName).getOrElse { error ->
+                _uiState.update {
+                    it.copy(emulationStatus = "ROM staging failed: ${error.message ?: "Unknown error"}")
+                }
+                return@launch
+            }
+
+            PocketEngine.unloadGame()
+            PocketEngine.unloadCore()
+
+            PocketEngine.loadCore(corePath).getOrElse { error ->
+                _uiState.update {
+                    it.copy(emulationStatus = "Core load failed: ${error.message ?: "Unknown error"}")
+                }
+                return@launch
+            }
+
+            PocketEngine.loadGame(staged.absolutePath).getOrElse { error ->
+                _uiState.update {
+                    it.copy(emulationStatus = "Game load failed: ${error.message ?: "Unknown error"}")
+                }
+                return@launch
+            }
+
+            _uiState.update {
+                it.copy(
+                    screen = Screen.EMULATION,
+                    emulationStatus = "Starting ${game.displayName}...",
+                )
+            }
+
+            launchEmulationLoop()
+        }
+    }
+
+    private fun launchEmulationLoop() {
+        viewModelScope.launch(Dispatchers.Default) {
+            var lastPublishedFrame = -1L
+
+            while (isActive && _uiState.value.screen == Screen.EMULATION) {
+                if (!PocketEngine.runFrame()) {
+                    _uiState.update {
+                        it.copy(emulationStatus = "Emulation stopped unexpectedly.")
+                    }
+                    break
+                }
+
+                val frameNumber = PocketEngine.frameCount()
+                if (frameNumber != lastPublishedFrame) {
+                    val width = PocketEngine.frameWidth()
+                    val height = PocketEngine.frameHeight()
+                    val pixels = PocketEngine.copyFrameRgba()
+
+                    if (width > 0 && height > 0 && pixels.size == width * height) {
+                        _uiState.update {
+                            it.copy(
+                                emulationStatus = "mGBA  ·  ${width}×${height}  ·  frame $frameNumber",
+                                emulationFrame = pixels,
+                                emulationWidth = width,
+                                emulationHeight = height,
+                            )
+                        }
+                        lastPublishedFrame = frameNumber
+                    }
+                }
+
+                delay(16)
+            }
+        }
+    }
+
+    private fun stopGame() {
+        PocketEngine.unloadGame()
+        romRuntimeStager.clear()
+        _uiState.update {
+            it.copy(
+                screen = Screen.PLATFORM,
+                emulationStatus = "",
+                emulationFrame = IntArray(0),
+                emulationWidth = 0,
+                emulationHeight = 0,
+            )
         }
     }
 
