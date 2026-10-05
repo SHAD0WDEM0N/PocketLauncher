@@ -207,6 +207,7 @@ class MainViewModel(
     private fun openPlatform(platform: Platform) {
         val folderUri = folderStore.getFolderUri(platform)
         val folderLabel = folderStore.getFolderLabel(folderUri)
+            ?: if (folderUri != null) "ROM folder" else null
 
         _uiState.update {
             it.copy(
