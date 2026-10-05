@@ -5,7 +5,7 @@ import android.net.Uri
 import android.view.KeyEvent
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.pocketlauncher.engine.PocketEngine
+import com.example.pocketlauncher.engine.PocketEngine\nimport com.example.pocketlauncher.engine.CoreDownloadManager
 import com.example.pocketlauncher.input.PocketButton
 import com.example.pocketlauncher.input.PocketInputMapper
 import com.example.pocketlauncher.library.GameEntry
@@ -56,12 +56,12 @@ class MainViewModel(
 
     private val folderStore = RomFolderStore(application)
     private val romScanner = RomScanner(application)
-    private val systemStore = SystemLibraryStore(application)
+    private val systemStore = SystemLibraryStore(application)\n    private val coreDownloadManager = CoreDownloadManager(application)
 
     private val _uiState = MutableStateFlow(
         PocketUiState(
             engineReady = PocketEngine.getStatus()?.equals("READY", ignoreCase = true) == true,
-            enabledPlatforms = systemStore.getEnabledPlatforms(),
+            enabledPlatforms = systemStore.getEnabledPlatforms(),\n            coreInstalled = coreDownloadManager.installedCorePath() != null,\n            coreStatus = if (coreDownloadManager.installedCorePath() != null) "mGBA installed" else "mGBA not installed",
         )
     )
     val uiState: StateFlow<PocketUiState> = _uiState.asStateFlow()
@@ -189,9 +189,12 @@ class MainViewModel(
 
         return when (button) {
             PocketButton.A -> {
-                if (_uiState.value.menuIndex == 0) {
-                    _uiState.update {
+                when (_uiState.value.menuIndex) {
+                    0 -> _uiState.update {
                         it.copy(screen = Screen.SYSTEM_MANAGER, menuIndex = 0)
+                    }
+                    1 -> _uiState.update {
+                        it.copy(screen = Screen.CORE_DOWNLOADS, menuIndex = 0)
                     }
                 }
                 true
@@ -201,6 +204,81 @@ class MainViewModel(
                 true
             }
             else -> false
+        }
+    }
+
+    private fun handleCoreDownloadsInput(button: PocketButton): Boolean {
+        return when (button) {
+            PocketButton.A -> {
+                if (!_uiState.value.coreDownloading) {
+                    downloadAndLoadMgba()
+                }
+                true
+            }
+            PocketButton.X -> {
+                PocketEngine.unloadCore()
+                coreDownloadManager.removeMgba()
+                _uiState.update {
+                    it.copy(
+                        coreInstalled = false,
+                        coreStatus = "mGBA not installed",
+                    )
+                }
+                true
+            }
+            PocketButton.B -> {
+                _uiState.update {
+                    it.copy(screen = Screen.EMULATOR_SETTINGS, menuIndex = 1)
+                }
+                true
+            }
+            else -> false
+        }
+    }
+
+    private fun downloadAndLoadMgba() {
+        _uiState.update {
+            it.copy(
+                coreDownloading = true,
+                coreStatus = "Downloading mGBA...",
+            )
+        }
+
+        viewModelScope.launch {
+            val path = coreDownloadManager.installedCorePath()
+                ?: coreDownloadManager.installMgba().getOrElse { error ->
+                    _uiState.update {
+                        it.copy(
+                            coreDownloading = false,
+                            coreInstalled = false,
+                            coreStatus = "Download failed: ${error.message ?: "Unknown error"}",
+                        )
+                    }
+                    return@launch
+                }.path
+
+            val result = PocketEngine.loadCore(path)
+            result.onSuccess { info ->
+                _uiState.update {
+                    it.copy(
+                        coreDownloading = false,
+                        coreInstalled = true,
+                        coreStatus = buildString {
+                            append(info.name.ifBlank { "mGBA" })
+                            if (info.version.isNotBlank()) append("  ").append(info.version)
+                            if (info.extensions.isNotBlank()) append("  ·  ").append(info.extensions)
+                        },
+                    )
+                }
+            }.onFailure { error ->
+                _uiState.update {
+                    it.copy(
+                        coreDownloading = false,
+                        coreInstalled = true,
+                        coreStatus = "Installed, but load failed: ${error.message ?: "Unknown error"}",
+                    )
+                }
+            }
         }
     }
 
