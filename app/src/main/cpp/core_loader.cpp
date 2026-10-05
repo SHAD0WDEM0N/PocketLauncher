@@ -54,7 +54,10 @@ bool CoreLoader::load(const std::string& path) {
         !bind(retro_unload_game_, "retro_unload_game") ||
         !bind(retro_run_, "retro_run") ||
         !bind(retro_get_memory_data_, "retro_get_memory_data") ||
-        !bind(retro_get_memory_size_, "retro_get_memory_size")) {
+        !bind(retro_get_memory_size_, "retro_get_memory_size") ||
+        !bind(retro_serialize_size_, "retro_serialize_size") ||
+        !bind(retro_serialize_, "retro_serialize") ||
+        !bind(retro_unserialize_, "retro_unserialize")) {
         unload();
         return false;
     }
@@ -111,6 +114,9 @@ void CoreLoader::unload() {
     retro_run_ = nullptr;
     retro_get_memory_data_ = nullptr;
     retro_get_memory_size_ = nullptr;
+    retro_serialize_size_ = nullptr;
+    retro_serialize_ = nullptr;
+    retro_unserialize_ = nullptr;
 }
 
 bool CoreLoader::loadGame(const std::string& romPath) {
@@ -217,6 +223,64 @@ bool CoreLoader::saveSaveRam(const std::string& path) {
     }
 
     LOGI("Saved save RAM: %zu bytes to %s", size, path.c_str());
+    return true;
+}
+
+bool CoreLoader::saveState(const std::string& path) {
+    if (!game_loaded_ || !retro_serialize_size_ || !retro_serialize_) return false;
+
+    const size_t size = retro_serialize_size_();
+    if (size == 0) {
+        last_error_ = "Core does not support save states";
+        return false;
+    }
+
+    std::vector<uint8_t> state(size);
+    if (!retro_serialize_(state.data(), state.size())) {
+        last_error_ = "Core failed to serialize state";
+        return false;
+    }
+
+    std::ofstream output(path, std::ios::binary | std::ios::trunc);
+    if (!output.good()) {
+        last_error_ = "Failed opening save-state file";
+        return false;
+    }
+    output.write(reinterpret_cast<const char*>(state.data()), static_cast<std::streamsize>(state.size()));
+    return output.good();
+}
+
+bool CoreLoader::loadState(const std::string& path) {
+    if (!game_loaded_ || !retro_unserialize_) return false;
+
+    std::ifstream input(path, std::ios::binary | std::ios::ate);
+    if (!input.good()) {
+        last_error_ = "Save state not found";
+        return false;
+    }
+
+    const auto end = input.tellg();
+    if (end <= 0) {
+        last_error_ = "Save state is empty";
+        return false;
+    }
+    std::vector<uint8_t> state(static_cast<size_t>(end));
+    input.seekg(0, std::ios::beg);
+    input.read(reinterpret_cast<char*>(state.data()), static_cast<std::streamsize>(state.size()));
+    if (!input.good() && !input.eof()) {
+        last_error_ = "Failed reading save state";
+        return false;
+    }
+
+    if (!retro_unserialize_(state.data(), state.size())) {
+        last_error_ = "Core rejected save state";
+        return false;
+    }
+
+    {
+        std::lock_guard<std::mutex> lock(audio_mutex_);
+        audio_pcm_.clear();
+    }
     return true;
 }
 
