@@ -12,7 +12,7 @@ import com.example.pocketlauncher.engine.PocketEngine
 
 class NativeFrameView(context: Context) : View(context), Choreographer.FrameCallback {
 
-    private val paint = Paint(Paint.FILTER_BITMAP_FLAG)
+    private val paint = Paint().apply { isFilterBitmap = false; isAntiAlias = false }
     private val debugPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = android.graphics.Color.WHITE
         textSize = 28f
@@ -77,10 +77,17 @@ class NativeFrameView(context: Context) : View(context), Choreographer.FrameCall
         val current = bitmap ?: return
         val src = Rect(0, 0, current.width, current.height)
 
-        val scale = minOf(
+        val maxScale = minOf(
             width.toFloat() / current.width.toFloat(),
             height.toFloat() / current.height.toFloat(),
         )
+
+        // Prefer an integer scale so source pixels map cleanly to whole display
+        // pixels. Fall back to fit scaling only if the surface is smaller than
+        // the native framebuffer.
+        val integerScale = kotlin.math.floor(maxScale).coerceAtLeast(1f)
+        val scale = if (maxScale >= 1f) integerScale else maxScale
+
         val drawWidth = (current.width * scale).toInt()
         val drawHeight = (current.height * scale).toInt()
         val left = (width - drawWidth) / 2
