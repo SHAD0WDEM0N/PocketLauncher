@@ -2,7 +2,7 @@ package com.example.pocketlauncher.engine
 
 import android.content.Context
 
-enum class VideoScaleMode { FIT, INTEGER }
+enum class VideoScaleMode { FIT, INTEGER, STRETCH }
 enum class VideoFilterMode { SHARP, SMOOTH }
 enum class MenuHotkey { L3_R3, START_SELECT, L1_R1 }
 
