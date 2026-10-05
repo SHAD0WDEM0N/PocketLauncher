@@ -2,21 +2,23 @@ package com.example.pocketlauncher.engine
 
 import android.media.AudioAttributes
 import android.media.AudioFormat
-import android.media.AudioManager
 import android.media.AudioTrack
+import java.util.concurrent.LinkedBlockingQueue
+import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.concurrent.thread
 import kotlin.math.max
 
 class EngineAudioPlayer {
 
     private var track: AudioTrack? = null
-    private var sampleRate: Int = 0
+    private val running = AtomicBoolean(false)
+    private val queue = LinkedBlockingQueue<ShortArray>(12)
+    private var worker: Thread? = null
 
     fun start(sampleRateHz: Double) {
         stop()
 
         val rate = sampleRateHz.toInt().coerceAtLeast(8000)
-        sampleRate = rate
-
         val minBuffer = AudioTrack.getMinBufferSize(
             rate,
             AudioFormat.CHANNEL_OUT_STEREO,
@@ -37,19 +39,45 @@ class EngineAudioPlayer {
                     .setChannelMask(AudioFormat.CHANNEL_OUT_STEREO)
                     .build()
             )
-            .setBufferSizeInBytes(max(minBuffer * 4, 16384))
+            .setBufferSizeInBytes(max(minBuffer * 2, 8192))
             .setTransferMode(AudioTrack.MODE_STREAM)
             .build()
             .also { it.play() }
+
+        running.set(true)
+        worker = thread(name = "PocketAudio", priority = Thread.MAX_PRIORITY) {
+            while (running.get()) {
+                val samples = runCatching { queue.take() }.getOrNull() ?: continue
+                val current = track ?: continue
+                var offset = 0
+                while (running.get() && offset < samples.size) {
+                    val written = current.write(
+                        samples,
+                        offset,
+                        samples.size - offset,
+                        AudioTrack.WRITE_BLOCKING,
+                    )
+                    if (written <= 0) break
+                    offset += written
+                }
+            }
+        }
     }
 
-    fun write(samples: ShortArray) {
-        if (samples.isEmpty()) return
-        val current = track ?: return
-        current.write(samples, 0, samples.size, AudioTrack.WRITE_BLOCKING)
+    fun enqueue(samples: ShortArray) {
+        if (samples.isEmpty() || !running.get()) return
+        if (!queue.offer(samples)) {
+            queue.poll()
+            queue.offer(samples)
+        }
     }
 
     fun stop() {
+        running.set(false)
+        worker?.interrupt()
+        worker = null
+        queue.clear()
+
         track?.let { current ->
             runCatching { current.pause() }
             runCatching { current.flush() }
@@ -57,6 +85,5 @@ class EngineAudioPlayer {
             runCatching { current.release() }
         }
         track = null
-        sampleRate = 0
     }
 }
