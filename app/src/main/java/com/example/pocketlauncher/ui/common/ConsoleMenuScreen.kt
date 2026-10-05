@@ -1,4 +1,4 @@
-package com.example.pocketlauncher.ui.home
+package com.example.pocketlauncher.ui.common
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -15,16 +15,16 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import com.example.pocketlauncher.theme.PocketAmber
-import com.example.pocketlauncher.theme.PocketGreen
 import com.example.pocketlauncher.theme.PocketWhiteDim
 import com.example.pocketlauncher.theme.PocketWhiteMuted
-import com.example.pocketlauncher.ui.common.pocketLayoutMetrics
 
 @Composable
-fun HomeScreen(
-    engineReady: Boolean = false,
-    selectedIndex: Int = 0,
-    menuItems: List<String>,
+fun ConsoleMenuScreen(
+    title: String,
+    items: List<String>,
+    selectedIndex: Int,
+    footer: String = "A  SELECT     B  BACK",
+    subtitle: String? = null,
 ) {
     val metrics = pocketLayoutMetrics()
 
@@ -37,7 +37,7 @@ fun HomeScreen(
         Spacer(Modifier.height(metrics.topPadding))
 
         Text(
-            text = "POCKETLAUNCHER",
+            text = title,
             style = MaterialTheme.typography.displayLarge.merge(
                 TextStyle(
                     fontSize = metrics.titleSize,
@@ -50,97 +50,77 @@ fun HomeScreen(
 
         Spacer(Modifier.height(8.dp))
         HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
+
+        if (subtitle != null) {
+            Spacer(Modifier.height(12.dp))
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall.merge(
+                    TextStyle(fontSize = metrics.secondaryTextSize)
+                ),
+                color = PocketWhiteMuted,
+            )
+        }
+
         Spacer(Modifier.height(metrics.sectionGap))
 
-        menuItems.forEachIndexed { index, label ->
-            MenuItem(
+        items.forEachIndexed { index, label ->
+            ConsoleMenuRow(
                 label = label,
                 selected = index == selectedIndex,
-                rowHeight = metrics.rowHeight,
-                textStyle = MaterialTheme.typography.bodyLarge.merge(
-                    TextStyle(fontSize = metrics.menuTextSize)
-                ),
+                metrics = metrics,
             )
         }
 
         Spacer(Modifier.weight(1f))
 
-        EngineStatusBadge(
-            ready = engineReady,
-            textStyle = MaterialTheme.typography.labelSmall.merge(
-                TextStyle(fontSize = metrics.hintTextSize)
-            ),
-        )
-
+        HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
         Spacer(Modifier.height(12.dp))
-
         Text(
-            text = "A  SELECT",
+            text = footer,
             style = MaterialTheme.typography.labelSmall.merge(
                 TextStyle(fontSize = metrics.hintTextSize)
             ),
             color = PocketWhiteMuted,
         )
-
         Spacer(Modifier.height(24.dp))
     }
 }
 
 @Composable
-private fun MenuItem(
+private fun ConsoleMenuRow(
     label: String,
     selected: Boolean,
-    rowHeight: androidx.compose.ui.unit.Dp,
-    textStyle: TextStyle,
+    metrics: PocketLayoutMetrics,
 ) {
     val alpha by animateFloatAsState(
         targetValue = if (selected) 1f else 0.42f,
         animationSpec = tween(120),
-        label = "menuItemAlpha",
+        label = "consoleMenuAlpha",
     )
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
-            .height(rowHeight)
+            .height(metrics.rowHeight)
             .alpha(alpha),
     ) {
         Text(
             text = if (selected) ">" else " ",
-            style = textStyle,
+            style = MaterialTheme.typography.bodyLarge.merge(
+                TextStyle(fontSize = metrics.menuTextSize)
+            ),
             color = PocketAmber,
             modifier = Modifier.width(32.dp),
         )
-
         Text(
             text = label,
-            style = textStyle,
+            style = MaterialTheme.typography.bodyLarge.merge(
+                TextStyle(fontSize = metrics.menuTextSize)
+            ),
             color = if (selected) MaterialTheme.colorScheme.onBackground else PocketWhiteDim,
             maxLines = 1,
-        )
-    }
-}
-
-@Composable
-private fun EngineStatusBadge(
-    ready: Boolean,
-    textStyle: TextStyle,
-) {
-    val colour = if (ready) PocketGreen else PocketWhiteMuted
-    val label = if (ready) "ENGINE  READY" else "ENGINE  INIT"
-
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(
-            modifier = Modifier
-                .size(6.dp)
-                .background(colour, shape = androidx.compose.foundation.shape.CircleShape),
-        )
-        Spacer(Modifier.width(8.dp))
-        Text(
-            text = label,
-            style = textStyle,
-            color = colour,
         )
     }
 }

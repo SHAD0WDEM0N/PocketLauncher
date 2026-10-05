@@ -1,31 +1,70 @@
 package com.example.pocketlauncher
 
 import androidx.compose.runtime.Composable
+import com.example.pocketlauncher.library.Platform
 import com.example.pocketlauncher.ui.home.HomeScreen
 import com.example.pocketlauncher.ui.input.InputTestScreen
+import com.example.pocketlauncher.ui.platform.PlatformScreen
+import com.example.pocketlauncher.ui.settings.EmulatorSettingsScreen
+import com.example.pocketlauncher.ui.settings.FrontEndSettingsScreen
+import com.example.pocketlauncher.ui.settings.SettingsScreen
+import com.example.pocketlauncher.ui.settings.SystemManagerScreen
 
-/**
- * MainNavigation — Phase 0 screen router.
- *
- * We deliberately avoid a navigation library in Phase 0 to keep
- * dependencies minimal. Simple when-expression routing is sufficient
- * until we have a real game library to navigate into.
- */
 @Composable
 fun MainNavigation(
-    uiState   : PocketUiState,
-    viewModel : MainViewModel,
+    uiState: PocketUiState,
+    viewModel: MainViewModel,
 ) {
     when (uiState.screen) {
-        Screen.HOME -> HomeScreen(
-            engineReady          = uiState.engineReady,
-            selectedIndex        = uiState.menuIndex,
-            onSelectIndexChanged = { /* driven by controller, not touch */ },
-            onNavigateToInputTest = { /* navigation handled in ViewModel */ },
+        Screen.HOME -> {
+            val menuItems = buildList {
+                add("Recently Played")
+                Platform.entries
+                    .filter { it in uiState.enabledPlatforms }
+                    .forEach { add(it.displayName) }
+                add("Settings")
+            }
+
+            HomeScreen(
+                engineReady = uiState.engineReady,
+                selectedIndex = uiState.menuIndex,
+                menuItems = menuItems,
+            )
+        }
+
+        Screen.PLATFORM -> {
+            val platform = uiState.selectedPlatform
+            if (platform != null) {
+                PlatformScreen(
+                    platform = platform,
+                    folderLabel = uiState.currentFolderLabel,
+                    games = uiState.games,
+                    selectedIndex = uiState.gameIndex,
+                    isScanning = uiState.isScanning,
+                )
+            }
+        }
+
+        Screen.SETTINGS -> SettingsScreen(
+            selectedIndex = uiState.menuIndex,
+        )
+
+        Screen.FRONT_END_SETTINGS -> FrontEndSettingsScreen(
+            selectedIndex = uiState.menuIndex,
+        )
+
+        Screen.EMULATOR_SETTINGS -> EmulatorSettingsScreen(
+            selectedIndex = uiState.menuIndex,
+            enabledPlatforms = uiState.enabledPlatforms,
+        )
+
+        Screen.SYSTEM_MANAGER -> SystemManagerScreen(
+            selectedIndex = uiState.menuIndex,
+            enabledPlatforms = uiState.enabledPlatforms,
         )
 
         Screen.INPUT_TEST -> InputTestScreen(
-            events        = uiState.inputEvents,
+            events = uiState.inputEvents,
             currentlyHeld = uiState.currentlyHeld,
         )
     }

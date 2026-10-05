@@ -1,27 +1,23 @@
 package com.example.pocketlauncher.ui.main
 
-import com.example.pocketlauncher.data.DataRepository
-import junit.framework.TestCase.assertEquals
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.test.runTest
+import com.example.pocketlauncher.library.Platform
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class MainScreenViewModelTest {
-  @Test
-  fun uiState_initiallyLoading() = runTest {
-    val viewModel = MainScreenViewModel(FakeMyModelRepository())
-    assertEquals(viewModel.uiState.first(), MainScreenUiState.Loading)
-  }
 
-  @Test
-  fun uiState_onItemSaved_isDisplayed() = runTest {
-    val viewModel = MainScreenViewModel(FakeMyModelRepository())
-    assertEquals(viewModel.uiState.first(), MainScreenUiState.Loading)
-  }
-}
+    @Test
+    fun supportedPlatforms_haveExpectedDisplayNames() {
+        assertEquals("Game Boy", Platform.GB.displayName)
+        assertEquals("Game Boy Color", Platform.GBC.displayName)
+        assertEquals("Game Boy Advance", Platform.GBA.displayName)
+    }
 
-private class FakeMyModelRepository : DataRepository {
-  override val data: Flow<List<String>> = flow { emit(listOf("Sample")) }
+    @Test
+    fun supportedPlatforms_recogniseExpectedRomExtensions() {
+        assertTrue("gb" in Platform.GB.extensions)
+        assertTrue("gbc" in Platform.GBC.extensions)
+        assertTrue("gba" in Platform.GBA.extensions)
+    }
 }
