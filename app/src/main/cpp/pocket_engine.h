@@ -83,6 +83,10 @@ JNIEXPORT jshortArray JNICALL
 Java_com_example_pocketlauncher_engine_PocketEngine_nativeDrainAudio(
         JNIEnv* env, jobject thiz);
 
+JNIEXPORT jdouble JNICALL
+Java_com_example_pocketlauncher_engine_PocketEngine_nativeGetVideoFps(
+        JNIEnv* env, jobject thiz);
+
 #ifdef __cplusplus
 }
 #endif
