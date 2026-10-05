@@ -71,6 +71,18 @@ JNIEXPORT jintArray JNICALL
 Java_com_example_pocketlauncher_engine_PocketEngine_nativeCopyFrameRgba(
         JNIEnv* env, jobject thiz);
 
+JNIEXPORT void JNICALL
+Java_com_example_pocketlauncher_engine_PocketEngine_nativeSetInputMask(
+        JNIEnv* env, jobject thiz, jint mask);
+
+JNIEXPORT jdouble JNICALL
+Java_com_example_pocketlauncher_engine_PocketEngine_nativeGetAudioSampleRate(
+        JNIEnv* env, jobject thiz);
+
+JNIEXPORT jshortArray JNICALL
+Java_com_example_pocketlauncher_engine_PocketEngine_nativeDrainAudio(
+        JNIEnv* env, jobject thiz);
+
 #ifdef __cplusplus
 }
 #endif
