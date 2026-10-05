@@ -197,3 +197,11 @@ Java_com_example_pocketlauncher_engine_PocketEngine_nativeDrainAudio(
     );
     return result;
 }
+
+
+JNIEXPORT jdouble JNICALL
+Java_com_example_pocketlauncher_engine_PocketEngine_nativeGetVideoFps(
+        JNIEnv* /* env */,
+        jobject /* thiz */) {
+    return static_cast<jdouble>(g_core_loader.videoFps());
+}
