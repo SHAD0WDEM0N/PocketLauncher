@@ -29,6 +29,8 @@ fun EmulationScreen(
     scaleMode: VideoScaleMode,
     filterMode: VideoFilterMode,
     menuHotkey: MenuHotkey,
+    selectedStateSlot: Int,
+    selectedStateSummary: String,
 ) {
     Box(
         modifier = Modifier
@@ -65,6 +67,7 @@ fun EmulationScreen(
                         "Resume",
                         "Save State",
                         "Load State",
+                        "State Slot   ${selectedStateSlot + 1} · $selectedStateSummary",
                         "Display Settings",
                         "Controller Settings",
                         "Restart Game",
@@ -74,7 +77,7 @@ fun EmulationScreen(
                 EmulationMenuPage.DISPLAY -> {
                     title = "DISPLAY"
                     items = listOf(
-                        "Scaling   ${if (scaleMode == VideoScaleMode.FIT) "Fit" else "Integer"}",
+                        "Scaling   ${scaleLabel(scaleMode)}",
                         "Filtering   ${if (filterMode == VideoFilterMode.SHARP) "Sharp" else "Smooth"}",
                         "Back",
                     )
@@ -137,4 +140,10 @@ private fun hotkeyLabel(hotkey: MenuHotkey): String = when (hotkey) {
     MenuHotkey.L3_R3 -> "L3 + R3"
     MenuHotkey.START_SELECT -> "START + SELECT"
     MenuHotkey.L1_R1 -> "L1 + R1"
+}
+
+private fun scaleLabel(mode: VideoScaleMode): String = when (mode) {
+    VideoScaleMode.FIT -> "Fit"
+    VideoScaleMode.INTEGER -> "Integer"
+    VideoScaleMode.STRETCH -> "Stretch"
 }
