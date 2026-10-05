@@ -2,6 +2,7 @@ package com.example.pocketlauncher.ui.emulation
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,6 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.example.pocketlauncher.EmulationMenuPage
@@ -67,7 +69,9 @@ fun EmulationScreen(
                     .padding(14.dp)
                     .size(42.dp)
                     .background(Color.Black.copy(alpha = 0.34f), CircleShape)
-                    .clickable(onClick = onMenuIconClick),
+                    .pointerInput(Unit) {
+                        detectTapGestures(onTap = { onMenuIconClick() })
+                    },
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
