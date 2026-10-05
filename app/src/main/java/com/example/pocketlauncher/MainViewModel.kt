@@ -12,6 +12,7 @@ import com.example.pocketlauncher.library.GameEntry
 import com.example.pocketlauncher.library.Platform
 import com.example.pocketlauncher.library.RomFolderStore
 import com.example.pocketlauncher.library.RomScanner
+import com.example.pocketlauncher.library.SystemLibraryStore
 import com.example.pocketlauncher.ui.input.ButtonEvent
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -19,61 +20,51 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Application-level UI state
-// ─────────────────────────────────────────────────────────────────────────────
-
-enum class Screen { HOME, PLATFORM, INPUT_TEST }
+enum class Screen {
+    HOME,
+    PLATFORM,
+    SETTINGS,
+    FRONT_END_SETTINGS,
+    EMULATOR_SETTINGS,
+    SYSTEM_MANAGER,
+    INPUT_TEST,
+}
 
 data class PocketUiState(
-    val screen                  : Screen             = Screen.HOME,
-    val menuIndex               : Int                = 0,
-    val engineReady             : Boolean            = false,
-    val inputEvents             : List<ButtonEvent>  = emptyList(),
-    val currentlyHeld           : Set<PocketButton>  = emptySet(),
+    val screen: Screen = Screen.HOME,
+    val menuIndex: Int = 0,
+    val engineReady: Boolean = false,
+    val inputEvents: List<ButtonEvent> = emptyList(),
+    val currentlyHeld: Set<PocketButton> = emptySet(),
 
-    // Library / platform state
-    val selectedPlatform        : Platform?           = null,
-    val games                   : List<GameEntry>      = emptyList(),
-    val gameIndex               : Int                  = 0,
-    val currentFolderUri        : String?              = null,
-    val currentFolderLabel      : String?              = null,
-    val isScanning              : Boolean              = false,
+    val enabledPlatforms: Set<Platform> = emptySet(),
 
-    // One-shot request observed by MainActivity to open Android's folder picker.
-    val folderPickerRequested   : Boolean              = false,
+    val selectedPlatform: Platform? = null,
+    val games: List<GameEntry> = emptyList(),
+    val gameIndex: Int = 0,
+    val currentFolderUri: String? = null,
+    val currentFolderLabel: String? = null,
+    val isScanning: Boolean = false,
+
+    val folderPickerRequested: Boolean = false,
+    val systemSettingsRequested: Boolean = false,
 )
 
-private const val MENU_SIZE = 5
-
-/**
- * MainViewModel
- *
- * Single source of truth for PocketLauncher UI state.
- *
- * Phase 1 adds:
- *   - GB / GBC / GBA platform routing
- *   - Persistent ROM folder mapping
- *   - Folder scanning
- *   - Controller navigation inside a platform library
- */
 class MainViewModel(
     application: Application,
 ) : AndroidViewModel(application) {
 
     private val folderStore = RomFolderStore(application)
     private val romScanner = RomScanner(application)
+    private val systemStore = SystemLibraryStore(application)
 
     private val _uiState = MutableStateFlow(
         PocketUiState(
             engineReady = PocketEngine.getStatus()?.equals("READY", ignoreCase = true) == true,
+            enabledPlatforms = systemStore.getEnabledPlatforms(),
         )
     )
     val uiState: StateFlow<PocketUiState> = _uiState.asStateFlow()
-
-    // -------------------------------------------------------------------------
-    // Controller input
-    // -------------------------------------------------------------------------
 
     fun onKeyEvent(event: KeyEvent, pressed: Boolean): Boolean {
         val button = PocketInputMapper.map(event) ?: return false
@@ -82,50 +73,158 @@ class MainViewModel(
             recordInputEvent(button, pressed)
         }
 
-        // Navigation acts on key-down only to avoid double-firing.
         if (!pressed) return true
 
         return when (_uiState.value.screen) {
-            Screen.HOME       -> handleHomeInput(button)
-            Screen.PLATFORM   -> handlePlatformInput(button)
+            Screen.HOME -> handleHomeInput(button)
+            Screen.PLATFORM -> handlePlatformInput(button)
+            Screen.SETTINGS -> handleSettingsInput(button)
+            Screen.FRONT_END_SETTINGS -> handleFrontEndSettingsInput(button)
+            Screen.EMULATOR_SETTINGS -> handleEmulatorSettingsInput(button)
+            Screen.SYSTEM_MANAGER -> handleSystemManagerInput(button)
             Screen.INPUT_TEST -> handleInputTestInput(button)
         }
     }
 
-    // ── Home screen navigation ────────────────────────────────────────────────
+    private fun enabledPlatformsInOrder(): List<Platform> =
+        Platform.entries.filter { it in _uiState.value.enabledPlatforms }
 
-    private fun handleHomeInput(button: PocketButton): Boolean {
+    private fun moveMenu(button: PocketButton, size: Int): Boolean {
+        if (size <= 0) return false
+
         return when (button) {
             PocketButton.UP -> {
                 _uiState.update {
-                    it.copy(menuIndex = (it.menuIndex - 1 + MENU_SIZE) % MENU_SIZE)
+                    it.copy(menuIndex = (it.menuIndex - 1 + size) % size)
                 }
                 true
             }
-
             PocketButton.DOWN -> {
                 _uiState.update {
-                    it.copy(menuIndex = (it.menuIndex + 1) % MENU_SIZE)
+                    it.copy(menuIndex = (it.menuIndex + 1) % size)
                 }
                 true
             }
-
-            PocketButton.A -> {
-                when (_uiState.value.menuIndex) {
-                    1 -> openPlatform(Platform.GB)
-                    2 -> openPlatform(Platform.GBC)
-                    3 -> openPlatform(Platform.GBA)
-                    4 -> _uiState.update { it.copy(screen = Screen.INPUT_TEST) }
-                    // Recently Played stays a placeholder for now.
-                }
-                true
-            }
-
             else -> false
         }
     }
 
-    // ── Platform screen navigation ────────────────────────────────────────────
+    private fun handleHomeInput(button: PocketButton): Boolean {
+        val platforms = enabledPlatformsInOrder()
+        val menuSize = platforms.size + 2
+
+        if (moveMenu(button, menuSize)) return true
+
+        return when (button) {
+            PocketButton.A -> {
+                when {
+                    _uiState.value.menuIndex == 0 -> Unit
+                    _uiState.value.menuIndex == menuSize - 1 -> {
+                        _uiState.update {
+                            it.copy(
+                                screen = Screen.SETTINGS,
+                                menuIndex = 0,
+                            )
+                        }
+                    }
+                    else -> {
+                        val platform = platforms.getOrNull(_uiState.value.menuIndex - 1)
+                        if (platform != null) openPlatform(platform)
+                    }
+                }
+                true
+            }
+            else -> false
+        }
+    }
+
+    private fun handleSettingsInput(button: PocketButton): Boolean {
+        if (moveMenu(button, 3)) return true
+
+        return when (button) {
+            PocketButton.A -> {
+                when (_uiState.value.menuIndex) {
+                    0 -> _uiState.update {
+                        it.copy(screen = Screen.FRONT_END_SETTINGS, menuIndex = 0)
+                    }
+                    1 -> _uiState.update {
+                        it.copy(screen = Screen.EMULATOR_SETTINGS, menuIndex = 0)
+                    }
+                    2 -> _uiState.update {
+                        it.copy(systemSettingsRequested = true)
+                    }
+                }
+                true
+            }
+            PocketButton.B -> {
+                _uiState.update { it.copy(screen = Screen.HOME, menuIndex = 0) }
+                true
+            }
+            else -> false
+        }
+    }
+
+    private fun handleFrontEndSettingsInput(button: PocketButton): Boolean {
+        if (moveMenu(button, 3)) return true
+
+        return when (button) {
+            PocketButton.A -> {
+                if (_uiState.value.menuIndex == 2) {
+                    _uiState.update {
+                        it.copy(screen = Screen.INPUT_TEST, menuIndex = 0)
+                    }
+                }
+                true
+            }
+            PocketButton.B -> {
+                _uiState.update { it.copy(screen = Screen.SETTINGS, menuIndex = 0) }
+                true
+            }
+            else -> false
+        }
+    }
+
+    private fun handleEmulatorSettingsInput(button: PocketButton): Boolean {
+        if (moveMenu(button, 3)) return true
+
+        return when (button) {
+            PocketButton.A -> {
+                if (_uiState.value.menuIndex == 0) {
+                    _uiState.update {
+                        it.copy(screen = Screen.SYSTEM_MANAGER, menuIndex = 0)
+                    }
+                }
+                true
+            }
+            PocketButton.B -> {
+                _uiState.update { it.copy(screen = Screen.SETTINGS, menuIndex = 1) }
+                true
+            }
+            else -> false
+        }
+    }
+
+    private fun handleSystemManagerInput(button: PocketButton): Boolean {
+        if (moveMenu(button, Platform.entries.size)) return true
+
+        return when (button) {
+            PocketButton.A -> {
+                val platform = Platform.entries.getOrNull(_uiState.value.menuIndex)
+                    ?: return true
+                val currentlyEnabled = platform in _uiState.value.enabledPlatforms
+                val updated = systemStore.setEnabled(platform, !currentlyEnabled)
+                _uiState.update { it.copy(enabledPlatforms = updated) }
+                true
+            }
+            PocketButton.B -> {
+                _uiState.update {
+                    it.copy(screen = Screen.EMULATOR_SETTINGS, menuIndex = 0)
+                }
+                true
+            }
+            else -> false
+        }
+    }
 
     private fun handlePlatformInput(button: PocketButton): Boolean {
         val state = _uiState.value
@@ -139,7 +238,6 @@ class MainViewModel(
                 }
                 true
             }
-
             PocketButton.DOWN -> {
                 if (state.games.isNotEmpty()) {
                     _uiState.update {
@@ -148,29 +246,25 @@ class MainViewModel(
                 }
                 true
             }
-
             PocketButton.A -> {
                 if (state.currentFolderUri == null) {
                     requestFolderPicker()
                 }
-                // Game launching is intentionally reserved for the libretro milestone.
                 true
             }
-
             PocketButton.X -> {
                 requestFolderPicker()
                 true
             }
-
             PocketButton.Y -> {
                 rescanCurrentPlatform()
                 true
             }
-
             PocketButton.B -> {
                 _uiState.update {
                     it.copy(
                         screen = Screen.HOME,
+                        menuIndex = 0,
                         selectedPlatform = null,
                         games = emptyList(),
                         gameIndex = 0,
@@ -182,27 +276,21 @@ class MainViewModel(
                 }
                 true
             }
-
             else -> false
         }
     }
-
-    // ── Input test navigation ─────────────────────────────────────────────────
 
     private fun handleInputTestInput(button: PocketButton): Boolean {
         return when (button) {
             PocketButton.B -> {
-                _uiState.update { it.copy(screen = Screen.HOME) }
+                _uiState.update {
+                    it.copy(screen = Screen.FRONT_END_SETTINGS, menuIndex = 2)
+                }
                 true
             }
-
             else -> false
         }
     }
-
-    // -------------------------------------------------------------------------
-    // Platform / ROM folder workflow
-    // -------------------------------------------------------------------------
 
     private fun openPlatform(platform: Platform) {
         val folderUri = folderStore.getFolderUri(platform)
@@ -232,18 +320,10 @@ class MainViewModel(
         _uiState.update { it.copy(folderPickerRequested = true) }
     }
 
-    /**
-     * Called immediately after MainActivity launches the system folder picker.
-     * This clears the one-shot request so returning from the picker cannot launch
-     * it again during recomposition.
-     */
     fun onFolderPickerLaunched() {
         _uiState.update { it.copy(folderPickerRequested = false) }
     }
 
-    /**
-     * Called by MainActivity after Android grants access to a selected folder.
-     */
     fun onFolderSelected(uri: Uri) {
         val platform = _uiState.value.selectedPlatform ?: return
 
@@ -263,6 +343,10 @@ class MainViewModel(
         scanPlatform(platform, uriString)
     }
 
+    fun onSystemSettingsLaunched() {
+        _uiState.update { it.copy(systemSettingsRequested = false) }
+    }
+
     private fun rescanCurrentPlatform() {
         val state = _uiState.value
         val platform = state.selectedPlatform ?: return
@@ -276,7 +360,6 @@ class MainViewModel(
         viewModelScope.launch {
             val games = romScanner.scan(platform, folderUri)
 
-            // Ignore stale results if the user backed out or changed platform.
             if (_uiState.value.screen != Screen.PLATFORM ||
                 _uiState.value.selectedPlatform != platform
             ) {
@@ -292,8 +375,6 @@ class MainViewModel(
             }
         }
     }
-
-    // ── Input event log ───────────────────────────────────────────────────────
 
     private fun recordInputEvent(button: PocketButton, pressed: Boolean) {
         _uiState.update { state ->
