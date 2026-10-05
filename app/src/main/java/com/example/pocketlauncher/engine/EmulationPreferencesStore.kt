@@ -32,4 +32,11 @@ class EmulationPreferencesStore(context: Context) {
     fun setMenuHotkey(value: MenuHotkey) {
         prefs.edit().putString("menu_hotkey", value.name).apply()
     }
+
+    fun onScreenMenuIconEnabled(): Boolean =
+        prefs.getBoolean("onscreen_menu_icon", true)
+
+    fun setOnScreenMenuIconEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean("onscreen_menu_icon", enabled).apply()
+    }
 }
