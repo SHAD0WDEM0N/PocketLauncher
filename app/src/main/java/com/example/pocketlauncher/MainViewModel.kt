@@ -87,6 +87,7 @@ data class PocketUiState(
     val menuHotkey: MenuHotkey = MenuHotkey.L3_R3,
     val selectedStateSlot: Int = 0,
     val selectedStateSummary: String = "Empty",
+    val onScreenMenuIconEnabled: Boolean = true,
 )
 
 class MainViewModel(
@@ -121,6 +122,7 @@ class MainViewModel(
             videoScaleMode = emulationPreferences.scaleMode(),
             videoFilterMode = emulationPreferences.filterMode(),
             menuHotkey = emulationPreferences.menuHotkey(),
+            onScreenMenuIconEnabled = emulationPreferences.onScreenMenuIconEnabled(),
         )
     )
     val uiState: StateFlow<PocketUiState> = _uiState.asStateFlow()
@@ -456,7 +458,7 @@ class MainViewModel(
             val itemCount = when (state.emulationMenuPage) {
                 EmulationMenuPage.MAIN -> 8
                 EmulationMenuPage.DISPLAY -> 3
-                EmulationMenuPage.CONTROLLER -> 2
+                EmulationMenuPage.CONTROLLER -> 3
             }
 
             return when (button) {
@@ -627,7 +629,17 @@ class MainViewModel(
                         )
                     }
                 }
-                1 -> _uiState.update {
+                1 -> {
+                    val next = !state.onScreenMenuIconEnabled
+                    emulationPreferences.setOnScreenMenuIconEnabled(next)
+                    _uiState.update {
+                        it.copy(
+                            onScreenMenuIconEnabled = next,
+                            emulationMenuStatus = if (next) "On-screen menu icon enabled" else "On-screen menu icon disabled",
+                        )
+                    }
+                }
+                2 -> _uiState.update {
                     it.copy(
                         emulationMenuPage = EmulationMenuPage.MAIN,
                         emulationMenuIndex = 5,
@@ -855,6 +867,21 @@ class MainViewModel(
                 emulationWidth = 0,
                 emulationHeight = 0,
                 emulationMenuOpen = false,
+                emulationMenuPage = EmulationMenuPage.MAIN,
+                emulationMenuIndex = 0,
+                emulationMenuStatus = "",
+            )
+        }
+    }
+
+    fun toggleInGameMenuFromTouch() {
+        if (_uiState.value.screen != Screen.EMULATION) return
+        emulationInputMask = 0
+        PocketEngine.setInputMask(0)
+        emulationHeldButtons.clear()
+        _uiState.update {
+            it.copy(
+                emulationMenuOpen = !it.emulationMenuOpen,
                 emulationMenuPage = EmulationMenuPage.MAIN,
                 emulationMenuIndex = 0,
                 emulationMenuStatus = "",
