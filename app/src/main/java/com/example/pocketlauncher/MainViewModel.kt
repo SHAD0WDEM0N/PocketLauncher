@@ -9,6 +9,7 @@ import com.example.pocketlauncher.engine.PocketEngine
 import com.example.pocketlauncher.engine.CoreDownloadManager
 import com.example.pocketlauncher.engine.RomRuntimeStager
 import com.example.pocketlauncher.engine.EngineAudioPlayer
+import com.example.pocketlauncher.engine.BatterySaveManager
 import com.example.pocketlauncher.input.PocketButton
 import com.example.pocketlauncher.input.PocketInputMapper
 import com.example.pocketlauncher.library.GameEntry
@@ -66,6 +67,8 @@ data class PocketUiState(
     val emulationFrame: IntArray = IntArray(0),
     val emulationWidth: Int = 0,
     val emulationHeight: Int = 0,
+    val emulationMenuOpen: Boolean = false,
+    val emulationMenuIndex: Int = 0,
 )
 
 class MainViewModel(
@@ -78,7 +81,10 @@ class MainViewModel(
     private val coreDownloadManager = CoreDownloadManager(application)
     private val romRuntimeStager = RomRuntimeStager(application)
     private val engineAudioPlayer = EngineAudioPlayer()
+    private val batterySaveManager = BatterySaveManager(application)
     private var emulationInputMask: Int = 0
+    private val emulationHeldButtons = mutableSetOf<PocketButton>()
+    private var activeSavePath: String? = null
 
     private val _uiState = MutableStateFlow(
         PocketUiState(
@@ -398,9 +404,57 @@ class MainViewModel(
     }
 
     private fun handleEmulationInput(button: PocketButton, pressed: Boolean): Boolean {
-        if (button == PocketButton.MENU && pressed) {
-            stopGame()
+        if (pressed) {
+            emulationHeldButtons += button
+        } else {
+            emulationHeldButtons -= button
+        }
+
+        val menuChordHeld =
+            PocketButton.L3 in emulationHeldButtons && PocketButton.R3 in emulationHeldButtons
+
+        if (pressed && menuChordHeld) {
+            emulationInputMask = 0
+            PocketEngine.setInputMask(0)
+            emulationHeldButtons.clear()
+            _uiState.update {
+                it.copy(
+                    emulationMenuOpen = !it.emulationMenuOpen,
+                    emulationMenuIndex = 0,
+                )
+            }
             return true
+        }
+
+        if (_uiState.value.emulationMenuOpen) {
+            if (!pressed) return true
+
+            return when (button) {
+                PocketButton.UP -> {
+                    _uiState.update {
+                        it.copy(emulationMenuIndex = (it.emulationMenuIndex - 1 + 2) % 2)
+                    }
+                    true
+                }
+                PocketButton.DOWN -> {
+                    _uiState.update {
+                        it.copy(emulationMenuIndex = (it.emulationMenuIndex + 1) % 2)
+                    }
+                    true
+                }
+                PocketButton.A -> {
+                    when (_uiState.value.emulationMenuIndex) {
+                        0 -> _uiState.update { it.copy(emulationMenuOpen = false) }
+                        1 -> stopGame()
+                    }
+                    true
+                }
+                PocketButton.B -> {
+                    _uiState.update { it.copy(emulationMenuOpen = false) }
+                    true
+                }
+                else -> true
+            }
         }
 
         val bit = when (button) {
@@ -425,14 +479,7 @@ class MainViewModel(
             } else {
                 emulationInputMask and (1 shl bit).inv()
             }
-
             PocketEngine.setInputMask(emulationInputMask)
-        }
-
-        val startHeld = (emulationInputMask and (1 shl 3)) != 0
-        val selectHeld = (emulationInputMask and (1 shl 2)) != 0
-        if (startHeld && selectHeld) {
-            stopGame()
         }
 
         return true
@@ -448,6 +495,8 @@ class MainViewModel(
                 emulationFrame = IntArray(0),
                 emulationWidth = 0,
                 emulationHeight = 0,
+                emulationMenuOpen = false,
+                emulationMenuIndex = 0,
             )
         }
 
@@ -484,6 +533,9 @@ class MainViewModel(
                 return@launch
             }
 
+            activeSavePath = batterySaveManager.saveFile(game).absolutePath
+            activeSavePath?.let { PocketEngine.loadSaveRam(it) }
+
             emulationInputMask = 0
             PocketEngine.setInputMask(0)
             engineAudioPlayer.start(PocketEngine.audioSampleRate())
@@ -492,6 +544,8 @@ class MainViewModel(
                 it.copy(
                     screen = Screen.EMULATION,
                     emulationStatus = "Starting ${game.displayName}...",
+                    emulationMenuOpen = false,
+                    emulationMenuIndex = 0,
                 )
             }
 
@@ -504,15 +558,20 @@ class MainViewModel(
             val fps = PocketEngine.videoFps().coerceIn(30.0, 240.0)
             val frameDurationNanos = (1_000_000_000.0 / fps).toLong()
             var nextFrameDeadline = System.nanoTime()
+            var nextSaveFlush = System.nanoTime() + 5_000_000_000L
 
             while (isActive && _uiState.value.screen == Screen.EMULATION) {
+                if (_uiState.value.emulationMenuOpen) {
+                    LockSupport.parkNanos(5_000_000L)
+                    nextFrameDeadline = System.nanoTime()
+                    continue
+                }
+
                 val now = System.nanoTime()
                 val waitNanos = nextFrameDeadline - now
                 if (waitNanos > 0) {
                     LockSupport.parkNanos(waitNanos)
                 } else if (waitNanos < -frameDurationNanos * 4) {
-                    // If Android paused us briefly, resynchronise instead of trying
-                    // to run a burst of catch-up frames.
                     nextFrameDeadline = System.nanoTime()
                 }
 
@@ -523,11 +582,15 @@ class MainViewModel(
                     break
                 }
 
-                // Audio playback is asynchronous now. Queue the PCM and immediately
-                // return to emulation/input work instead of blocking this thread.
                 val audio = PocketEngine.drainAudio()
                 if (audio.isNotEmpty()) {
                     engineAudioPlayer.enqueue(audio)
+                }
+
+                val saveNow = System.nanoTime()
+                if (saveNow >= nextSaveFlush) {
+                    activeSavePath?.let { PocketEngine.saveSaveRam(it) }
+                    nextSaveFlush = saveNow + 5_000_000_000L
                 }
 
                 nextFrameDeadline += frameDurationNanos
@@ -538,6 +601,9 @@ class MainViewModel(
     private fun stopGame() {
         emulationInputMask = 0
         PocketEngine.setInputMask(0)
+        emulationHeldButtons.clear()
+        activeSavePath?.let { PocketEngine.saveSaveRam(it) }
+        activeSavePath = null
         engineAudioPlayer.stop()
         PocketEngine.unloadGame()
         romRuntimeStager.clear()
