@@ -93,3 +93,72 @@ Java_com_example_pocketlauncher_engine_PocketEngine_nativeGetCoreError(
         jobject /* thiz */) {
     return toJString(env, g_core_loader.lastError());
 }
+
+
+JNIEXPORT jboolean JNICALL
+Java_com_example_pocketlauncher_engine_PocketEngine_nativeLoadGame(
+        JNIEnv* env,
+        jobject /* thiz */,
+        jstring romPath) {
+    if (!romPath) return JNI_FALSE;
+
+    const char* chars = env->GetStringUTFChars(romPath, nullptr);
+    const std::string path(chars ? chars : "");
+    if (chars) env->ReleaseStringUTFChars(romPath, chars);
+
+    return g_core_loader.loadGame(path) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT void JNICALL
+Java_com_example_pocketlauncher_engine_PocketEngine_nativeUnloadGame(
+        JNIEnv* /* env */,
+        jobject /* thiz */) {
+    g_core_loader.unloadGame();
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_example_pocketlauncher_engine_PocketEngine_nativeRunFrame(
+        JNIEnv* /* env */,
+        jobject /* thiz */) {
+    return g_core_loader.runFrame() ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jint JNICALL
+Java_com_example_pocketlauncher_engine_PocketEngine_nativeGetFrameWidth(
+        JNIEnv* /* env */,
+        jobject /* thiz */) {
+    return static_cast<jint>(g_core_loader.frameWidth());
+}
+
+JNIEXPORT jint JNICALL
+Java_com_example_pocketlauncher_engine_PocketEngine_nativeGetFrameHeight(
+        JNIEnv* /* env */,
+        jobject /* thiz */) {
+    return static_cast<jint>(g_core_loader.frameHeight());
+}
+
+JNIEXPORT jlong JNICALL
+Java_com_example_pocketlauncher_engine_PocketEngine_nativeGetFrameCount(
+        JNIEnv* /* env */,
+        jobject /* thiz */) {
+    return static_cast<jlong>(g_core_loader.frameCount());
+}
+
+JNIEXPORT jintArray JNICALL
+Java_com_example_pocketlauncher_engine_PocketEngine_nativeCopyFrameRgba(
+        JNIEnv* env,
+        jobject /* thiz */) {
+    const auto frame = g_core_loader.copyFrameRgba();
+    if (frame.empty()) return env->NewIntArray(0);
+
+    jintArray result = env->NewIntArray(static_cast<jsize>(frame.size()));
+    if (!result) return nullptr;
+
+    env->SetIntArrayRegion(
+        result,
+        0,
+        static_cast<jsize>(frame.size()),
+        reinterpret_cast<const jint*>(frame.data())
+    );
+    return result;
+}
