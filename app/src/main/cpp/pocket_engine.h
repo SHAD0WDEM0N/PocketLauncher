@@ -95,6 +95,14 @@ JNIEXPORT jboolean JNICALL
 Java_com_example_pocketlauncher_engine_PocketEngine_nativeSaveSaveRam(
         JNIEnv* env, jobject thiz, jstring path);
 
+JNIEXPORT jboolean JNICALL
+Java_com_example_pocketlauncher_engine_PocketEngine_nativeSaveState(
+        JNIEnv* env, jobject thiz, jstring path);
+
+JNIEXPORT jboolean JNICALL
+Java_com_example_pocketlauncher_engine_PocketEngine_nativeLoadState(
+        JNIEnv* env, jobject thiz, jstring path);
+
 #ifdef __cplusplus
 }
 #endif
