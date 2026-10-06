@@ -256,6 +256,68 @@ class MainViewModel(
             else -> false
         }
     }
+    private fun handleRecentInput(button: PocketButton): Boolean =
+        handleCollectionInput(button, allowFavouriteToggle = true)
+
+    private fun handleFavouriteLibraryInput(button: PocketButton): Boolean =
+        handleCollectionInput(button, allowFavouriteToggle = true)
+
+    private fun handleCollectionInput(
+        button: PocketButton,
+        allowFavouriteToggle: Boolean,
+    ): Boolean {
+        val state = _uiState.value
+        return when (button) {
+            PocketButton.LEFT, PocketButton.UP -> {
+                if (state.games.isNotEmpty()) {
+                    _uiState.update { it.copy(gameIndex = (it.gameIndex - 1 + it.games.size) % it.games.size) }
+                }
+                true
+            }
+            PocketButton.RIGHT, PocketButton.DOWN -> {
+                if (state.games.isNotEmpty()) {
+                    _uiState.update { it.copy(gameIndex = (it.gameIndex + 1) % it.games.size) }
+                }
+                true
+            }
+            PocketButton.A -> {
+                state.games.getOrNull(state.gameIndex)?.let { startGame(it) }
+                true
+            }
+            PocketButton.X -> {
+                val game = state.games.getOrNull(state.gameIndex)
+                if (game != null) {
+                    _uiState.update {
+                        it.copy(
+                            screen = Screen.GAME_OPTIONS,
+                            menuIndex = 0,
+                            gameOptionsUri = game.uri,
+                            matchSearchStatus = "",
+                            scrapeCandidates = emptyList(),
+                            scrapeCandidateIndex = 0,
+                        )
+                    }
+                }
+                true
+            }
+            PocketButton.Y -> {
+                if (allowFavouriteToggle) toggleFavouriteSelected()
+                true
+            }
+            PocketButton.B -> {
+                _uiState.update {
+                    it.copy(
+                        screen = Screen.HOME,
+                        menuIndex = 0,
+                        games = emptyList(),
+                        gameIndex = 0,
+                    )
+                }
+                true
+            }
+            else -> false
+        }
+    }
     private fun handleSettingsInput(button: PocketButton): Boolean {
         if (moveMenu(button, 4)) return true
 
