@@ -6,6 +6,7 @@ import com.example.pocketlauncher.ui.home.HomeScreen
 import com.example.pocketlauncher.ui.emulation.EmulationScreen
 import com.example.pocketlauncher.ui.input.InputTestScreen
 import com.example.pocketlauncher.ui.platform.PlatformScreen
+import com.example.pocketlauncher.ui.platform.RecentlyPlayedScreen
 import com.example.pocketlauncher.ui.platform.GameOptionsScreen
 import com.example.pocketlauncher.ui.platform.ScrapeMatchScreen
 import com.example.pocketlauncher.ui.settings.EmulatorSettingsScreen
@@ -51,6 +52,12 @@ fun MainNavigation(
                 )
             }
         }
+
+        Screen.RECENTLY_PLAYED -> RecentlyPlayedScreen(
+            games = uiState.games,
+            selectedIndex = uiState.gameIndex,
+            isScanning = uiState.isScanning,
+        )
 
         Screen.GAME_OPTIONS -> GameOptionsScreen(
             game = uiState.games.firstOrNull { it.uri == uiState.gameOptionsUri },
