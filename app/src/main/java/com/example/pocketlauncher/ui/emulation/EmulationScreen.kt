@@ -130,27 +130,26 @@ fun EmulationScreen(
                 }
             }
 
-            Column(
+            Row(
                 modifier = Modifier
                     .align(Alignment.CenterStart)
-                    .padding(start = 28.dp)
-                    .width(330.dp)
-                    .background(Color.Black.copy(alpha = 0.90f))
-                    .padding(horizontal = 22.dp, vertical = 20.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                    .fillMaxWidth()
+                    .padding(horizontal = 28.dp),
+                horizontalArrangement = Arrangement.spacedBy(24.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
+                Column(
+                    modifier = Modifier
+                        .width(360.dp)
+                        .background(Color.Black.copy(alpha = 0.90f))
+                        .padding(horizontal = 22.dp, vertical = 18.dp),
+                    verticalArrangement = Arrangement.spacedBy(9.dp),
+                ) {
                 Text(
                     text = title,
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onBackground,
                 )
-
-                if (menuPage == EmulationMenuPage.MAIN) {
-                    StateThumbnailPreview(
-                        path = selectedStateThumbnailPath,
-                        slot = selectedStateSlot,
-                    )
-                }
 
                 items.forEachIndexed { index, label ->
                     val selected = index == menuIndex
@@ -223,6 +222,17 @@ fun EmulationScreen(
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.45f),
                 )
+                }
+
+                if (menuPage == EmulationMenuPage.MAIN) {
+                    StateThumbnailPreview(
+                        path = selectedStateThumbnailPath,
+                        slot = selectedStateSlot,
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(250.dp),
+                    )
+                }
             }
         }
     }
@@ -232,6 +242,7 @@ fun EmulationScreen(
 private fun StateThumbnailPreview(
     path: String?,
     slot: Int,
+    modifier: Modifier = Modifier,
 ) {
     val image = remember(path) {
         path?.let { filePath ->
@@ -242,10 +253,9 @@ private fun StateThumbnailPreview(
     }
 
     Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(108.dp)
-            .background(Color.White.copy(alpha = 0.05f)),
+        modifier = modifier
+            .background(Color.Black.copy(alpha = 0.72f))
+            .padding(14.dp),
         contentAlignment = Alignment.Center,
     ) {
         if (image != null) {
