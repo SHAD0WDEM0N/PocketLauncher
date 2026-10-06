@@ -2,8 +2,10 @@ package com.example.pocketlauncher.ui.platform
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Canvas as AndroidCanvas
 import android.graphics.Matrix
 import android.graphics.Paint as AndroidPaint
+import android.graphics.RectF as AndroidRectF
 import android.util.Base64
 import android.util.LruCache
 import androidx.compose.foundation.Canvas
@@ -455,18 +457,44 @@ private fun PerspectiveArtwork(
                 112f * sx, 126f * sy, // bottom-right
                 33f * sx, 135f * sy,  // bottom-left
             )
+            // Normalize scraper covers onto a consistent portrait canvas first.
+            // This preserves the original artwork proportions and avoids the tall/narrow stretch
+            // when different providers return slightly different box-art aspect ratios.
+            val targetWidth = 320
+            val targetHeight = 400
+            val normalized = Bitmap.createBitmap(targetWidth, targetHeight, Bitmap.Config.ARGB_8888)
+            val normalizedCanvas = AndroidCanvas(normalized)
+            val fitPaint = AndroidPaint(AndroidPaint.ANTI_ALIAS_FLAG or AndroidPaint.FILTER_BITMAP_FLAG)
+
+            val scale = minOf(
+                targetWidth.toFloat() / artwork.width.toFloat(),
+                targetHeight.toFloat() / artwork.height.toFloat(),
+            )
+            val drawWidth = artwork.width * scale
+            val drawHeight = artwork.height * scale
+            val left = (targetWidth - drawWidth) / 2f
+            val top = (targetHeight - drawHeight) / 2f
+
+            normalizedCanvas.drawBitmap(
+                artwork,
+                null,
+                AndroidRectF(left, top, left + drawWidth, top + drawHeight),
+                fitPaint,
+            )
+
             val src = floatArrayOf(
                 0f, 0f,
-                artwork.width.toFloat(), 0f,
-                artwork.width.toFloat(), artwork.height.toFloat(),
-                0f, artwork.height.toFloat(),
+                targetWidth.toFloat(), 0f,
+                targetWidth.toFloat(), targetHeight.toFloat(),
+                0f, targetHeight.toFloat(),
             )
 
             val matrix = Matrix().apply {
                 setPolyToPoly(src, 0, dst, 0, 4)
             }
             val paint = AndroidPaint(AndroidPaint.ANTI_ALIAS_FLAG or AndroidPaint.FILTER_BITMAP_FLAG)
-            canvas.nativeCanvas.drawBitmap(artwork, matrix, paint)
+            canvas.nativeCanvas.drawBitmap(normalized, matrix, paint)
+            normalized.recycle()
         }
     }
 }
