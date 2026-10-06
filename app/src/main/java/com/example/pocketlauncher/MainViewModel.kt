@@ -42,6 +42,12 @@ enum class EmulationMenuPage {
     CONTROLLER,
 }
 
+enum class ScrapeMode {
+    MISSING,
+    MISSING_ARTWORK,
+    RESCRAPE_ALL,
+}
+
 enum class Screen {
     HOME,
     PLATFORM,
@@ -283,7 +289,17 @@ class MainViewModel(
     }
 
     private fun handleScraperSettingsInput(button: PocketButton): Boolean {
+        if (moveMenu(button, 3)) return true
+
         return when (button) {
+            PocketButton.A -> {
+                when (_uiState.value.menuIndex) {
+                    0 -> scrapeGbaLibrary(ScrapeMode.MISSING)
+                    1 -> scrapeGbaLibrary(ScrapeMode.MISSING_ARTWORK)
+                    2 -> scrapeGbaLibrary(ScrapeMode.RESCRAPE_ALL)
+                }
+                true
+            }
             PocketButton.B -> {
                 _uiState.update {
                     it.copy(screen = Screen.FRONT_END_SETTINGS, menuIndex = 1)
@@ -1057,87 +1073,110 @@ class MainViewModel(
                 )
             }
 
-            if (platform == Platform.GBA) {
-                scrapeMissingGames(games)
-            }
         }
     }
 
-    private suspend fun scrapeMissingGames(games: List<GameEntry>) {
+    fun scrapeGbaLibrary(mode: ScrapeMode) {
+        if (_uiState.value.scraperRunning) return
+
         val apiKey = _uiState.value.scraperApiKey.trim()
         if (apiKey.isBlank()) {
-            _uiState.update {
-                it.copy(scraperStatus = "ADD A THEGAMESDB API KEY IN ARTWORK & SCRAPING")
-            }
+            _uiState.update { it.copy(scraperStatus = "ADD A THEGAMESDB API KEY FIRST") }
             return
         }
 
-        val missing = games
-            .filter { scrapeCache.get(it) == null }
-            .take(20)
+        val folderUri = folderStore.getFolderUri(Platform.GBA)
+        if (folderUri == null) {
+            _uiState.update { it.copy(scraperStatus = "CONFIGURE A GBA ROM FOLDER FIRST") }
+            return
+        }
 
-        if (missing.isEmpty()) {
+        viewModelScope.launch {
             _uiState.update {
                 it.copy(
-                    scraperRunning = false,
-                    scraperStatus = "ALL CURRENT GBA GAMES ARE CACHED",
+                    scraperRunning = true,
+                    scraperStatus = "SCANNING GBA LIBRARY...",
                 )
             }
-            return
-        }
 
-        _uiState.update {
-            it.copy(
-                scraperRunning = true,
-                scraperStatus = "0 / ${missing.size}",
-            )
-        }
-
-        var completed = 0
-        for ((index, game) in missing.withIndex()) {
-            if (_uiState.value.screen != Screen.PLATFORM ||
-                _uiState.value.selectedPlatform != Platform.GBA
-            ) {
-                break
-            }
-
-            val result = theGamesDbClient.scrape(game, apiKey)
-            val data = result.getOrNull()
-
-            if (data == null) {
-                val message = result.exceptionOrNull()?.message ?: "Unknown scraper error"
+            val games = romScanner.scan(Platform.GBA, folderUri)
+            if (games.isEmpty()) {
                 _uiState.update {
                     it.copy(
                         scraperRunning = false,
-                        scraperStatus = "SCRAPER ERROR  ·  $message",
+                        scraperStatus = "NO GBA ROMS FOUND",
                     )
                 }
-                return
+                return@launch
             }
 
-            scrapeCache.put(game, data)
-            completed += 1
-
-            _uiState.update { state ->
-                val updatedGames = state.games.map { existing ->
-                    if (existing.uri == game.uri) applyScrapedData(existing, data) else existing
+            val targets = when (mode) {
+                ScrapeMode.MISSING -> games.filter { scrapeCache.get(it) == null }
+                ScrapeMode.MISSING_ARTWORK -> games.filter { game ->
+                    val cached = scrapeCache.get(game)
+                    cached == null || cached.artworkUrl.isNullOrBlank()
                 }
-                state.copy(
-                    games = updatedGames,
-                    scraperRunning = true,
-                    scraperStatus = "${index + 1} / ${missing.size}",
+                ScrapeMode.RESCRAPE_ALL -> games
+            }
+
+            if (targets.isEmpty()) {
+                _uiState.update {
+                    it.copy(
+                        scraperRunning = false,
+                        scraperStatus = when (mode) {
+                            ScrapeMode.MISSING -> "NO NEW OR UNSCRAPED GAMES"
+                            ScrapeMode.MISSING_ARTWORK -> "NO GAMES WITH MISSING ARTWORK"
+                            ScrapeMode.RESCRAPE_ALL -> "NOTHING TO RESCRAPE"
+                        },
+                    )
+                }
+                return@launch
+            }
+
+            val cappedTargets = targets.take(50)
+            var completed = 0
+            var failed = 0
+
+            for ((index, game) in cappedTargets.withIndex()) {
+                _uiState.update {
+                    it.copy(scraperStatus = "${index + 1} / ${cappedTargets.size}  ·  ${game.displayName}")
+                }
+
+                val result = theGamesDbClient.scrape(game, apiKey)
+                val data = result.getOrNull()
+                if (data != null) {
+                    scrapeCache.put(game, data)
+                    completed += 1
+
+                    _uiState.update { state ->
+                        val updatedGames = if (state.selectedPlatform == Platform.GBA) {
+                            state.games.map { existing ->
+                                if (existing.uri == game.uri) applyScrapedData(existing, data) else existing
+                            }
+                        } else {
+                            state.games
+                        }
+                        state.copy(games = updatedGames)
+                    }
+                } else {
+                    failed += 1
+                }
+            }
+
+            _uiState.update {
+                it.copy(
+                    scraperRunning = false,
+                    scraperStatus = buildString {
+                        append("SCRAPED ").append(completed)
+                        if (failed > 0) append("  ·  ").append(failed).append(" FAILED")
+                        if (targets.size > cappedTargets.size) {
+                            append("  ·  ").append(targets.size - cappedTargets.size).append(" REMAINING")
+                        }
+                    },
                 )
             }
         }
-
-        _uiState.update {
-            it.copy(
-                scraperRunning = false,
-                scraperStatus = if (completed == 1) "SCRAPED 1 NEW GAME" else "SCRAPED $completed NEW GAMES",
-            )
-        }
     }
-
     private fun applyScrapedData(game: GameEntry, data: ScrapedGameData): GameEntry =
         game.copy(
             displayName = data.title ?: game.displayName,
