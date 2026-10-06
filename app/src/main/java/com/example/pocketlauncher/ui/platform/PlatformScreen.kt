@@ -262,151 +262,59 @@ private fun CartridgeCard(
     selected: Boolean,
     platform: Platform,
 ) {
-    val background = if (selected) Color(0xFFEDEAE3) else Color(0xFF181818)
-    val border = if (selected) Color.White else Color(0xFF2A2A2A)
+    val outerBackground = if (selected) Color(0xFFEDEAE3) else Color(0xFF181818)
+    val outerBorder = if (selected) Color.White else Color(0xFF2A2A2A)
+
+    val frameColor = when (platform) {
+        Platform.GB -> if (selected) Color(0xFFBDBAB2) else Color(0xFF76736D)
+        Platform.GBC -> if (selected) Color(0xFF9FB0BA) else Color(0xFF52636D)
+        Platform.GBA -> if (selected) Color(0xFF77759A) else Color(0xFF44425F)
+    }
 
     Box(
         modifier = Modifier
             .width(170.dp)
             .height(170.dp)
-            .background(background)
-            .border(1.dp, border),
+            .background(outerBackground)
+            .border(1.dp, outerBorder),
         contentAlignment = Alignment.Center,
     ) {
-        when (platform) {
-            Platform.GBA -> GbaCartridgePlaceholder(
-                game = game,
-                selected = selected,
-                modifier = Modifier.size(width = 126.dp, height = 102.dp),
-            )
-            Platform.GB, Platform.GBC -> GbCartridgePlaceholder(
-                game = game,
-                selected = selected,
-                colorModel = platform == Platform.GBC,
-                modifier = Modifier.size(width = 100.dp, height = 124.dp),
-            )
-        }
-    }
-}
-
-@Composable
-private fun GbaCartridgePlaceholder(
-    game: GameEntry,
-    selected: Boolean,
-    modifier: Modifier = Modifier,
-) {
-    val shell = if (selected) Color(0xFF555753) else Color(0xFF363836)
-    val ridge = if (selected) Color(0xFF777A75) else Color(0xFF4A4C49)
-    val label = if (selected) Color(0xFF2F6940) else Color(0xFF255333)
-
-    Box(modifier = modifier) {
-        Canvas(Modifier.fillMaxSize()) {
-            val w = size.width
-            val h = size.height
-
-            drawRoundRect(
-                color = shell,
-                topLeft = Offset(w * 0.08f, h * 0.12f),
-                size = Size(w * 0.84f, h * 0.76f),
-                cornerRadius = CornerRadius(8f),
-            )
-
-            drawRect(
-                color = ridge,
-                topLeft = Offset(w * 0.16f, h * 0.08f),
-                size = Size(w * 0.68f, h * 0.12f),
-            )
-
-            drawRoundRect(
-                color = label,
-                topLeft = Offset(w * 0.17f, h * 0.30f),
-                size = Size(w * 0.66f, h * 0.40f),
-                cornerRadius = CornerRadius(4f),
-            )
-        }
-
-        if (game.artworkUrl != null) {
-            RemoteArtwork(
-                url = game.artworkUrl,
-                modifier = Modifier
-                    .align(Alignment.Center)
-                    .padding(top = 5.dp)
-                    .width(78.dp)
-                    .height(48.dp)
-                    .clip(RoundedCornerShape(3.dp)),
-            )
-        } else {
-            Text(
-                text = game.displayName.uppercase(),
-                modifier = Modifier
-                    .align(Alignment.Center)
-                    .width(72.dp),
-                style = MaterialTheme.typography.labelSmall,
-                color = Color.White.copy(alpha = 0.90f),
-                textAlign = TextAlign.Center,
-                maxLines = 3,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-    }
-}
-
-@Composable
-private fun GbCartridgePlaceholder(
-    game: GameEntry,
-    selected: Boolean,
-    colorModel: Boolean,
-    modifier: Modifier = Modifier,
-) {
-    val shell = when {
-        colorModel && selected -> Color(0xFF879BA5)
-        colorModel -> Color(0xFF53626A)
-        selected -> Color(0xFFB7B4AE)
-        else -> Color(0xFF77746F)
-    }
-
-    Box(modifier = modifier) {
-        Canvas(Modifier.fillMaxSize()) {
-            val w = size.width
-            val h = size.height
-
-            drawRoundRect(
-                color = shell,
-                topLeft = Offset(w * 0.08f, h * 0.04f),
-                size = Size(w * 0.84f, h * 0.92f),
-                cornerRadius = CornerRadius(7f),
-            )
-
-            drawRect(
-                color = Color(0xFF31312F),
-                topLeft = Offset(w * 0.17f, h * 0.29f),
-                size = Size(w * 0.66f, h * 0.46f),
-            )
-        }
-
-        if (game.artworkUrl != null) {
-            RemoteArtwork(
-                url = game.artworkUrl,
-                modifier = Modifier
-                    .align(Alignment.Center)
-                    .padding(top = 8.dp)
-                    .width(66.dp)
-                    .height(78.dp)
-                    .clip(RoundedCornerShape(3.dp)),
-            )
-        } else {
-            Text(
-                text = game.displayName.uppercase(),
-                modifier = Modifier
-                    .align(Alignment.Center)
-                    .padding(top = 12.dp)
-                    .width(66.dp),
-                style = MaterialTheme.typography.labelSmall,
-                color = Color.White,
-                textAlign = TextAlign.Center,
-                maxLines = 3,
-                overflow = TextOverflow.Ellipsis,
-            )
+        Box(
+            modifier = Modifier
+                .width(104.dp)
+                .height(142.dp)
+                .background(frameColor)
+                .border(
+                    width = if (selected) 2.dp else 1.dp,
+                    color = if (selected) Color(0xFFF7F5F0) else Color.Black.copy(alpha = 0.35f),
+                )
+                .padding(5.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (game.artworkUrl != null) {
+                RemoteArtwork(
+                    url = game.artworkUrl,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Fit,
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color(0xFF101010)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = game.displayName.uppercase(),
+                        modifier = Modifier.padding(8.dp),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.White.copy(alpha = 0.88f),
+                        textAlign = TextAlign.Center,
+                        maxLines = 5,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
         }
     }
 }
@@ -494,6 +402,7 @@ private fun decodeArtwork(url: String): Bitmap? {
 private fun RemoteArtwork(
     url: String,
     modifier: Modifier = Modifier,
+    contentScale: ContentScale = ContentScale.Crop,
 ) {
     var bitmap by remember(url) {
         mutableStateOf(ArtworkMemoryCache.get(url)?.asImageBitmap())
@@ -513,7 +422,7 @@ private fun RemoteArtwork(
             bitmap = image,
             contentDescription = null,
             modifier = modifier,
-            contentScale = ContentScale.Crop,
+            contentScale = contentScale,
         )
     }
 }
