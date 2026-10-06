@@ -3,6 +3,8 @@ package com.example.pocketlauncher.ui.settings
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -46,9 +48,12 @@ fun ScraperSettingsScreen(
         "RESCRAPE ALL GBA" to onRescrapeAll,
     )
 
+    val scrollState = rememberScrollState()
+
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(scrollState)
             .padding(horizontal = metrics.horizontalPadding),
     ) {
         Spacer(Modifier.height(metrics.topPadding))
@@ -112,14 +117,14 @@ fun ScraperSettingsScreen(
             color = PocketWhiteMuted,
         )
 
-        Spacer(Modifier.weight(1f))
+        Spacer(Modifier.height(12.dp))
 
         Text(
             text = "↑ ↓  SELECT    A  SCRAPE    B  BACK",
             style = MaterialTheme.typography.labelSmall,
             color = PocketWhiteMuted,
         )
-        Spacer(Modifier.height(24.dp))
+        Spacer(Modifier.height(16.dp))
     }
 }
 
