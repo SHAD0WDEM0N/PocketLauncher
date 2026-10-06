@@ -14,6 +14,7 @@ import com.example.pocketlauncher.engine.BatterySaveManager
 import com.example.pocketlauncher.engine.SaveStateManager
 import com.example.pocketlauncher.engine.EmulationPreferencesStore
 import com.example.pocketlauncher.engine.MenuHotkey
+import com.example.pocketlauncher.engine.VideoEffectMode
 import com.example.pocketlauncher.engine.VideoFilterMode
 import com.example.pocketlauncher.engine.VideoScaleMode
 import com.example.pocketlauncher.input.PocketButton
@@ -113,6 +114,7 @@ data class PocketUiState(
     val emulationMenuStatus: String = "",
     val videoScaleMode: VideoScaleMode = VideoScaleMode.FIT,
     val videoFilterMode: VideoFilterMode = VideoFilterMode.SHARP,
+    val videoEffectMode: VideoEffectMode = VideoEffectMode.OFF,
     val menuHotkey: MenuHotkey = MenuHotkey.L3_R3,
     val selectedStateSlot: Int = 0,
     val selectedStateSummary: String = "Empty",
@@ -160,6 +162,7 @@ class MainViewModel(
             },
             videoScaleMode = emulationPreferences.scaleMode(),
             videoFilterMode = emulationPreferences.filterMode(),
+            videoEffectMode = emulationPreferences.effectMode(),
             menuHotkey = emulationPreferences.menuHotkey(),
             onScreenMenuIconEnabled = emulationPreferences.onScreenMenuIconEnabled(),
             hasFavourites = favouriteStore.hasAnyFavourites(),
@@ -824,7 +827,7 @@ class MainViewModel(
             val state = _uiState.value
             val itemCount = when (state.emulationMenuPage) {
                 EmulationMenuPage.MAIN -> 8
-                EmulationMenuPage.DISPLAY -> 3
+                EmulationMenuPage.DISPLAY -> 4
                 EmulationMenuPage.CONTROLLER -> 3
             }
 
@@ -973,7 +976,22 @@ class MainViewModel(
                     emulationPreferences.setFilterMode(next)
                     _uiState.update { it.copy(videoFilterMode = next) }
                 }
-                2 -> _uiState.update {
+                2 -> {
+                    val next = when (state.videoEffectMode) {
+                        VideoEffectMode.OFF -> VideoEffectMode.SCANLINES
+                        VideoEffectMode.SCANLINES -> VideoEffectMode.LCD_GRID
+                        VideoEffectMode.LCD_GRID -> VideoEffectMode.PIXEL_GRID
+                        VideoEffectMode.PIXEL_GRID -> VideoEffectMode.OFF
+                    }
+                    emulationPreferences.setEffectMode(next)
+                    _uiState.update {
+                        it.copy(
+                            videoEffectMode = next,
+                            emulationMenuStatus = "Display effect updated",
+                        )
+                    }
+                }
+                3 -> _uiState.update {
                     it.copy(
                         emulationMenuPage = EmulationMenuPage.MAIN,
                         emulationMenuIndex = 4,
