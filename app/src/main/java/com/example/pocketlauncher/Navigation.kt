@@ -6,6 +6,8 @@ import com.example.pocketlauncher.ui.home.HomeScreen
 import com.example.pocketlauncher.ui.emulation.EmulationScreen
 import com.example.pocketlauncher.ui.input.InputTestScreen
 import com.example.pocketlauncher.ui.platform.PlatformScreen
+import com.example.pocketlauncher.ui.platform.GameOptionsScreen
+import com.example.pocketlauncher.ui.platform.ScrapeMatchScreen
 import com.example.pocketlauncher.ui.settings.EmulatorSettingsScreen
 import com.example.pocketlauncher.ui.settings.CoreDownloadsScreen
 import com.example.pocketlauncher.ui.settings.FrontEndSettingsScreen
@@ -49,6 +51,20 @@ fun MainNavigation(
                 )
             }
         }
+
+        Screen.GAME_OPTIONS -> GameOptionsScreen(
+            game = uiState.games.firstOrNull { it.uri == uiState.gameOptionsUri },
+            selectedIndex = uiState.menuIndex,
+            status = uiState.matchSearchStatus,
+        )
+
+        Screen.SCRAPE_MATCHES -> ScrapeMatchScreen(
+            game = uiState.games.firstOrNull { it.uri == uiState.gameOptionsUri },
+            candidates = uiState.scrapeCandidates,
+            selectedIndex = uiState.scrapeCandidateIndex,
+            status = uiState.matchSearchStatus,
+            running = uiState.matchSearchRunning,
+        )
 
         Screen.SETTINGS -> SettingsScreen(
             selectedIndex = uiState.menuIndex,
