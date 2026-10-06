@@ -60,12 +60,12 @@ class NativeFrameView(context: Context) : View(context), Choreographer.FrameCall
         }
     private val borderPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val borderTextPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = android.graphics.Color.rgb(220, 224, 235)
+        color = android.graphics.Color.rgb(38, 40, 46)
         textAlign = Paint.Align.CENTER
         typeface = android.graphics.Typeface.create(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.BOLD_ITALIC)
     }
     private val borderSmallPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = android.graphics.Color.rgb(175, 184, 205)
+        color = android.graphics.Color.rgb(54, 57, 64)
         textAlign = Paint.Align.CENTER
         typeface = android.graphics.Typeface.create(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.BOLD)
     }
@@ -212,16 +212,19 @@ class NativeFrameView(context: Context) : View(context), Choreographer.FrameCall
         val leftWidth = dst.left.coerceAtLeast(0)
         val rightStart = dst.right.coerceAtMost(width)
         val rightWidth = (width - rightStart).coerceAtLeast(0)
-        val indigoTop = android.graphics.Color.rgb(70, 75, 180)
-        val indigoBottom = android.graphics.Color.rgb(28, 33, 102)
+        val silverLight = android.graphics.Color.rgb(198, 201, 207)
+        val silverMid = android.graphics.Color.rgb(132, 136, 145)
+        val silverDark = android.graphics.Color.rgb(58, 61, 68)
 
         if (leftWidth > 0) {
             borderPaint.shader = LinearGradient(
                 0f, 0f, leftWidth.toFloat(), 0f,
-                indigoBottom, indigoTop, Shader.TileMode.CLAMP
+                silverDark, silverLight, Shader.TileMode.CLAMP
             )
             canvas.drawRect(0f, 0f, leftWidth.toFloat(), height.toFloat(), borderPaint)
             borderPaint.shader = null
+            borderPaint.color = silverMid
+            canvas.drawRect(leftWidth - 3f, 0f, leftWidth.toFloat(), height.toFloat(), borderPaint)
 
             borderTextPaint.textSize = (leftWidth * 0.13f).coerceIn(18f, 34f)
             canvas.drawText("GAME BOY", leftWidth * 0.50f, height * 0.34f, borderTextPaint)
@@ -233,10 +236,12 @@ class NativeFrameView(context: Context) : View(context), Choreographer.FrameCall
         if (rightWidth > 0) {
             borderPaint.shader = LinearGradient(
                 rightStart.toFloat(), 0f, width.toFloat(), 0f,
-                indigoTop, indigoBottom, Shader.TileMode.CLAMP
+                silverLight, silverDark, Shader.TileMode.CLAMP
             )
             canvas.drawRect(rightStart.toFloat(), 0f, width.toFloat(), height.toFloat(), borderPaint)
             borderPaint.shader = null
+            borderPaint.color = silverMid
+            canvas.drawRect(rightStart.toFloat(), 0f, rightStart + 3f, height.toFloat(), borderPaint)
 
             val cx = rightStart + rightWidth * 0.50f
             val ledRadius = (rightWidth * 0.035f).coerceIn(4f, 9f)
@@ -266,23 +271,32 @@ class NativeFrameView(context: Context) : View(context), Choreographer.FrameCall
         val top = dst.bottom.toFloat()
         borderPaint.shader = LinearGradient(
             0f, top, 0f, height.toFloat(),
-            android.graphics.Color.rgb(34, 35, 42),
-            android.graphics.Color.rgb(8, 9, 12),
+            android.graphics.Color.rgb(30, 31, 35),
+            android.graphics.Color.rgb(2, 2, 4),
             Shader.TileMode.CLAMP
         )
         canvas.drawRect(0f, top, width.toFloat(), height.toFloat(), borderPaint)
         borderPaint.shader = null
 
-        borderPaint.color = android.graphics.Color.rgb(72, 74, 82)
+        // Thin glossy lip like the real SP display bezel.
+        borderPaint.color = android.graphics.Color.rgb(78, 80, 86)
         canvas.drawRect(0f, top, width.toFloat(), top + 2f, borderPaint)
+        borderPaint.color = android.graphics.Color.argb(70, 255, 255, 255)
+        canvas.drawRect(0f, top + 2f, width.toFloat(), top + 4f, borderPaint)
 
         val bannerHeight = height - dst.bottom
-        borderTextPaint.textSize = (bannerHeight * 0.34f).coerceIn(20f, 42f)
-        val baseline = top + bannerHeight * 0.62f
-        canvas.drawText("GAME BOY ADVANCE", width * 0.43f, baseline, borderTextPaint)
+        borderTextPaint.color = android.graphics.Color.rgb(232, 232, 235)
+        borderSmallPaint.color = android.graphics.Color.rgb(205, 207, 212)
+        borderTextPaint.textSize = (bannerHeight * 0.31f).coerceIn(18f, 38f)
+        val baseline = top + bannerHeight * 0.60f
+        canvas.drawText("GAME BOY ADVANCE", width * 0.48f, baseline, borderTextPaint)
 
-        borderSmallPaint.textSize = (bannerHeight * 0.30f).coerceIn(18f, 38f)
-        canvas.drawText("SP", width * 0.74f, baseline, borderSmallPaint)
+        borderSmallPaint.textSize = (bannerHeight * 0.26f).coerceIn(16f, 32f)
+        canvas.drawText("SP", width * 0.78f, baseline, borderSmallPaint)
+
+        // Restore darker print colour used by the silver side rails.
+        borderTextPaint.color = android.graphics.Color.rgb(38, 40, 46)
+        borderSmallPaint.color = android.graphics.Color.rgb(54, 57, 64)
     }
 
     private fun overlayFor(dst: Rect, sourceWidth: Int, sourceHeight: Int): Bitmap? {
@@ -306,8 +320,8 @@ class NativeFrameView(context: Context) : View(context), Choreographer.FrameCall
             VideoEffectMode.OFF -> Unit
 
             VideoEffectMode.SCANLINES -> {
-                p.color = android.graphics.Color.argb(58, 0, 0, 0)
-                val thickness = maxOf(1f, pixelH * 0.28f)
+                p.color = android.graphics.Color.argb(92, 0, 0, 0)
+                val thickness = maxOf(1.5f, pixelH * 0.38f)
                 for (row in 0 until sourceHeight) {
                     val y = (row + 1) * pixelH - thickness
                     c.drawRect(0f, y, dst.width().toFloat(), y + thickness, p)
@@ -315,9 +329,9 @@ class NativeFrameView(context: Context) : View(context), Choreographer.FrameCall
             }
 
             VideoEffectMode.LCD_GRID -> {
-                p.color = android.graphics.Color.argb(38, 0, 0, 0)
-                val hThickness = maxOf(1f, pixelH * 0.16f)
-                val vThickness = maxOf(1f, pixelW * 0.16f)
+                p.color = android.graphics.Color.argb(72, 0, 0, 0)
+                val hThickness = maxOf(1.25f, pixelH * 0.24f)
+                val vThickness = maxOf(1.25f, pixelW * 0.24f)
 
                 for (row in 1 until sourceHeight) {
                     val y = row * pixelH - hThickness / 2f
@@ -330,9 +344,9 @@ class NativeFrameView(context: Context) : View(context), Choreographer.FrameCall
             }
 
             VideoEffectMode.PIXEL_GRID -> {
-                p.color = android.graphics.Color.argb(54, 0, 0, 0)
-                val hThickness = maxOf(1f, pixelH * 0.22f)
-                val vThickness = maxOf(1f, pixelW * 0.22f)
+                p.color = android.graphics.Color.argb(96, 0, 0, 0)
+                val hThickness = maxOf(1.5f, pixelH * 0.32f)
+                val vThickness = maxOf(1.5f, pixelW * 0.32f)
 
                 for (row in 1 until sourceHeight) {
                     val y = row * pixelH - hThickness / 2f
