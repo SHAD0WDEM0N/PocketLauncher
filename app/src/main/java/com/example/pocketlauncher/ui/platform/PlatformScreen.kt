@@ -38,6 +38,8 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
@@ -290,20 +292,30 @@ private fun CartridgeCard(
                     url = game.artworkUrl,
                     modifier = Modifier
                         .align(Alignment.Center)
-                        .offset(x = 8.dp, y = (-2).dp)
-                        .width(84.dp)
-                        .height(108.dp)
-                        .clip(RoundedCornerShape(4.dp)),
-                    contentScale = ContentScale.Crop,
+                        .offset(x = 10.dp, y = (-1).dp)
+                        .width(76.dp)
+                        .height(102.dp)
+                        .graphicsLayer {
+                            rotationY = -5f
+                            transformOrigin = TransformOrigin(0.15f, 0.5f)
+                            cameraDistance = 18f * density
+                        }
+                        .clip(RoundedCornerShape(3.dp)),
+                    contentScale = ContentScale.Fit,
                 )
             } else {
                 Box(
                     modifier = Modifier
                         .align(Alignment.Center)
-                        .offset(x = 8.dp, y = (-2).dp)
-                        .width(84.dp)
-                        .height(108.dp)
-                        .clip(RoundedCornerShape(4.dp))
+                        .offset(x = 10.dp, y = (-1).dp)
+                        .width(76.dp)
+                        .height(102.dp)
+                        .graphicsLayer {
+                            rotationY = -5f
+                            transformOrigin = TransformOrigin(0.15f, 0.5f)
+                            cameraDistance = 18f * density
+                        }
+                        .clip(RoundedCornerShape(3.dp))
                         .background(Color(0xFF151515)),
                     contentAlignment = Alignment.Center,
                 ) {
