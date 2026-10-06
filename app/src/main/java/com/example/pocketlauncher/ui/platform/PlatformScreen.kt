@@ -280,8 +280,8 @@ private fun CartridgeCard(
     ) {
         Box(
             modifier = Modifier
-                .width(104.dp)
-                .height(138.dp)
+                .width(112.dp)
+                .height(146.dp)
                 .offset(y = if (selected) (-3).dp else 0.dp)
                 .graphicsLayer {
                     scaleX = if (selected) 1.035f else 1f
@@ -303,7 +303,7 @@ private fun CartridgeCard(
                 RemoteArtwork(
                     url = game.artworkUrl,
                     modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Fit,
+                    contentScale = ContentScale.Crop,
                 )
             } else {
                 Text(
