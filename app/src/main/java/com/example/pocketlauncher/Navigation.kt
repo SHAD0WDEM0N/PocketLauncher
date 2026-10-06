@@ -25,6 +25,7 @@ fun MainNavigation(
         Screen.HOME -> {
             val menuItems = buildList {
                 add("Recently Played")
+                if (uiState.hasFavourites) add("Favourites")
                 Platform.entries
                     .filter { it in uiState.enabledPlatforms }
                     .forEach { add(it.displayName) }
@@ -57,6 +58,16 @@ fun MainNavigation(
             games = uiState.games,
             selectedIndex = uiState.gameIndex,
             isScanning = uiState.isScanning,
+        )
+
+        Screen.FAVOURITES -> RecentlyPlayedScreen(
+            games = uiState.games,
+            selectedIndex = uiState.gameIndex,
+            isScanning = uiState.isScanning,
+            title = "Favourites",
+            emptyTitle = "No favourites yet.",
+            emptySubtitle = "Favourite a game with Y to add it here.",
+            showFavouriteAction = true,
         )
 
         Screen.GAME_OPTIONS -> GameOptionsScreen(
@@ -119,6 +130,7 @@ fun MainNavigation(
             menuHotkey = uiState.menuHotkey,
             selectedStateSlot = uiState.selectedStateSlot,
             selectedStateSummary = uiState.selectedStateSummary,
+            selectedStateThumbnailPath = uiState.selectedStateThumbnailPath,
             onScreenMenuIconEnabled = uiState.onScreenMenuIconEnabled,
             onMenuIconClick = viewModel::toggleInGameMenuFromTouch,
             onMenuItemClick = viewModel::onEmulationMenuTouch,
