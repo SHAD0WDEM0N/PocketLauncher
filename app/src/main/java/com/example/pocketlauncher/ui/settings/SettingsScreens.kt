@@ -28,7 +28,7 @@ fun FrontEndSettingsScreen(
         subtitle = "PocketLauncher appearance, artwork and controller options.",
         items = listOf(
             "Theme  ·  Default",
-            "Artwork & Scraping  ·  Coming next",
+            "Artwork & Scraping  ·  TheGamesDB",
             "Controller / Input Test",
         ),
         selectedIndex = selectedIndex,
