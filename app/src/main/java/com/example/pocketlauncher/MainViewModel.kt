@@ -824,7 +824,7 @@ class MainViewModel(
                 return@launch
             }
 
-            val staged = romRuntimeStager.stage(game.uri, game.fileName).getOrElse { error ->
+            val staged = romRuntimeStager.stage(game.uri, game.fileName, game.platform.extensions).getOrElse { error ->
                 _uiState.update {
                     it.copy(emulationStatus = "ROM staging failed: ${error.message ?: "Unknown error"}")
                 }
