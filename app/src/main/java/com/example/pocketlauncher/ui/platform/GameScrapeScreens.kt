@@ -62,6 +62,7 @@ fun GameOptionsScreen(
             "Find / Change Match",
             "Rescrape This Game",
             "Clear Scraped Data",
+            "Clear Stats",
             "Change ROM Folder",
         ),
         selectedIndex = selectedIndex,
