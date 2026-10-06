@@ -587,7 +587,7 @@ class MainViewModel(
     }
 
     private fun handleGameOptionsInput(button: PocketButton): Boolean {
-        if (moveMenu(button, 4)) return true
+        if (moveMenu(button, 5)) return true
 
         return when (button) {
             PocketButton.A -> {
@@ -595,7 +595,8 @@ class MainViewModel(
                     0 -> findMatchesForSelectedGame()
                     1 -> rescrapeSelectedGame()
                     2 -> clearSelectedGameScrape()
-                    3 -> {
+                    3 -> clearSelectedGameStats()
+                    4 -> {
                         _uiState.update { it.copy(screen = Screen.PLATFORM, menuIndex = 0) }
                         requestFolderPicker()
                     }
@@ -746,6 +747,23 @@ class MainViewModel(
         }
     }
 
+    private fun clearSelectedGameStats() {
+        val game = selectedOptionsGame() ?: return
+        playHistoryStore.clear(game)
+        _uiState.update { state ->
+            state.copy(
+                games = state.games.map { existing ->
+                    if (existing.uri == game.uri) {
+                        existing.copy(
+                            lastPlayedEpochMs = 0L,
+                            playtimeSeconds = 0L,
+                        )
+                    } else existing
+                },
+                matchSearchStatus = "PLAYTIME & LAST PLAYED CLEARED  ·  SAVES UNTOUCHED",
+            )
+        }
+    }
     private fun clearSelectedGameScrape() {
         val game = selectedOptionsGame() ?: return
         scrapeCache.remove(game)
