@@ -45,7 +45,7 @@ fun ScraperSettingsScreen(
         "SCRAPE NEW / MISSING GAMES" to onScrapeNewMissing,
         "SCRAPE MISSING ARTWORK" to onScrapeMissingArtwork,
         "SCRAPE MISSING METADATA" to onScrapeMissingMetadata,
-        "RESCRAPE ALL GBA" to onRescrapeAll,
+        "RESCRAPE ALL HANDHELDS" to onRescrapeAll,
     )
 
     val scrollState = rememberScrollState()
@@ -67,7 +67,7 @@ fun ScraperSettingsScreen(
         Spacer(Modifier.height(8.dp))
 
         Text(
-            text = "PROVIDER  ·  THEGAMESDB  ·  GBA TESTING",
+            text = "PROVIDER  ·  THEGAMESDB  ·  GB / GBC / GBA",
             style = MaterialTheme.typography.labelSmall,
             color = PocketWhiteMuted,
         )
@@ -112,7 +112,7 @@ fun ScraperSettingsScreen(
         Spacer(Modifier.height(8.dp))
 
         Text(
-            text = "New / Missing only targets games with no cached scrape. Missing Artwork and Missing Metadata repair just those gaps. Rescrape All refreshes every configured GBA ROM.",
+            text = "New / Missing targets uncached games across configured GB, GBC and GBA libraries. Missing Artwork and Missing Metadata repair only those gaps. Rescrape All refreshes every configured handheld ROM.",
             style = MaterialTheme.typography.bodySmall,
             color = PocketWhiteMuted,
         )
