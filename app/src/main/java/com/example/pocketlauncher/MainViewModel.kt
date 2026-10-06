@@ -2,6 +2,7 @@ package com.example.pocketlauncher
 
 import android.app.Application
 import android.net.Uri
+import android.os.SystemClock
 import android.view.KeyEvent
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -19,6 +20,7 @@ import com.example.pocketlauncher.input.PocketButton
 import com.example.pocketlauncher.input.PocketInputMapper
 import com.example.pocketlauncher.library.GameEntry
 import com.example.pocketlauncher.library.Platform
+import com.example.pocketlauncher.library.PlayHistoryStore
 import com.example.pocketlauncher.library.RomFolderStore
 import com.example.pocketlauncher.library.RomScanner
 import com.example.pocketlauncher.library.SystemLibraryStore
@@ -53,6 +55,7 @@ enum class ScrapeMode {
 enum class Screen {
     HOME,
     PLATFORM,
+    RECENTLY_PLAYED,
     GAME_OPTIONS,
     SCRAPE_MATCHES,
     SETTINGS,
@@ -121,6 +124,7 @@ class MainViewModel(
     private val folderStore = RomFolderStore(application)
     private val romScanner = RomScanner(application)
     private val systemStore = SystemLibraryStore(application)
+    private val playHistoryStore = PlayHistoryStore(application)
     private val scraperPreferences = ScraperPreferencesStore(application)
     private val scrapeCache = ScrapeCache(application)
     private val theGamesDbClient = TheGamesDbClient()
@@ -135,6 +139,7 @@ class MainViewModel(
     private var activeSavePath: String? = null
     private var activeRomPath: String? = null
     private var activeGame: GameEntry? = null
+    private var activeSessionStartedElapsedMs: Long = 0L
 
     private val _uiState = MutableStateFlow(
         PocketUiState(
@@ -171,6 +176,7 @@ class MainViewModel(
         return when (_uiState.value.screen) {
             Screen.HOME -> handleHomeInput(button)
             Screen.PLATFORM -> handlePlatformInput(button)
+            Screen.RECENTLY_PLAYED -> handleRecentInput(button)
             Screen.GAME_OPTIONS -> handleGameOptionsInput(button)
             Screen.SCRAPE_MATCHES -> handleScrapeMatchesInput(button)
             Screen.SETTINGS -> handleSettingsInput(button)
@@ -230,7 +236,7 @@ class MainViewModel(
         return when (button) {
             PocketButton.A -> {
                 when {
-                    _uiState.value.menuIndex == 0 -> Unit
+                    _uiState.value.menuIndex == 0 -> openRecentlyPlayed()
                     _uiState.value.menuIndex == menuSize - 1 -> {
                         _uiState.update {
                             it.copy(
@@ -250,6 +256,55 @@ class MainViewModel(
         }
     }
 
+    private fun handleRecentInput(button: PocketButton): Boolean {
+        val state = _uiState.value
+        return when (button) {
+            PocketButton.LEFT, PocketButton.UP -> {
+                if (state.games.isNotEmpty()) {
+                    _uiState.update { it.copy(gameIndex = (it.gameIndex - 1 + it.games.size) % it.games.size) }
+                }
+                true
+            }
+            PocketButton.RIGHT, PocketButton.DOWN -> {
+                if (state.games.isNotEmpty()) {
+                    _uiState.update { it.copy(gameIndex = (it.gameIndex + 1) % it.games.size) }
+                }
+                true
+            }
+            PocketButton.A -> {
+                state.games.getOrNull(state.gameIndex)?.let { startGame(it) }
+                true
+            }
+            PocketButton.X -> {
+                val game = state.games.getOrNull(state.gameIndex)
+                if (game != null) {
+                    _uiState.update {
+                        it.copy(
+                            screen = Screen.GAME_OPTIONS,
+                            menuIndex = 0,
+                            gameOptionsUri = game.uri,
+                            matchSearchStatus = "",
+                            scrapeCandidates = emptyList(),
+                            scrapeCandidateIndex = 0,
+                        )
+                    }
+                }
+                true
+            }
+            PocketButton.B -> {
+                _uiState.update {
+                    it.copy(
+                        screen = Screen.HOME,
+                        menuIndex = 0,
+                        games = emptyList(),
+                        gameIndex = 0,
+                    )
+                }
+                true
+            }
+            else -> false
+        }
+    }
     private fun handleSettingsInput(button: PocketButton): Boolean {
         if (moveMenu(button, 4)) return true
 
@@ -1059,6 +1114,7 @@ class MainViewModel(
             }
 
             activeGame = game
+            activeSessionStartedElapsedMs = SystemClock.elapsedRealtime()
             activeRomPath = staged.absolutePath
             activeSavePath = batterySaveManager.saveFile(game).absolutePath
             activeSavePath?.let { PocketEngine.loadSaveRam(it) }
@@ -1134,6 +1190,25 @@ class MainViewModel(
         PocketEngine.setInputMask(0)
         emulationHeldButtons.clear()
         activeSavePath?.let { PocketEngine.saveSaveRam(it) }
+
+        val finishedGame = activeGame
+        if (finishedGame != null && activeSessionStartedElapsedMs > 0L) {
+            val sessionSeconds = ((SystemClock.elapsedRealtime() - activeSessionStartedElapsedMs) / 1000L).coerceAtLeast(1L)
+            val history = playHistoryStore.recordSession(finishedGame, sessionSeconds)
+            _uiState.update { state ->
+                state.copy(
+                    games = state.games.map { existing ->
+                        if (existing.uri == finishedGame.uri) {
+                            existing.copy(
+                                lastPlayedEpochMs = history.lastPlayedEpochMs,
+                                playtimeSeconds = history.playtimeSeconds,
+                            )
+                        } else existing
+                    }
+                )
+            }
+        }
+        activeSessionStartedElapsedMs = 0L
         activeSavePath = null
         activeRomPath = null
         activeGame = null
@@ -1223,6 +1298,49 @@ class MainViewModel(
         }
     }
 
+    private fun openRecentlyPlayed() {
+        _uiState.update {
+            it.copy(
+                screen = Screen.RECENTLY_PLAYED,
+                games = emptyList(),
+                gameIndex = 0,
+                isScanning = true,
+            )
+        }
+
+        viewModelScope.launch {
+            val recent = buildList {
+                for (platform in enabledPlatformsInOrder()) {
+                    val folderUri = folderStore.getFolderUri(platform) ?: continue
+                    val scanned = romScanner.scan(platform, folderUri)
+                    addAll(scanned.map { game ->
+                        val scraped = scrapeCache.get(game)?.let { data -> applyScrapedData(game, data) } ?: game
+                        applyHistory(scraped)
+                    })
+                }
+            }
+                .filter { it.lastPlayedEpochMs > 0L }
+                .sortedByDescending { it.lastPlayedEpochMs }
+
+            if (_uiState.value.screen == Screen.RECENTLY_PLAYED) {
+                _uiState.update {
+                    it.copy(
+                        games = recent,
+                        gameIndex = 0,
+                        isScanning = false,
+                    )
+                }
+            }
+        }
+    }
+
+    private fun applyHistory(game: GameEntry): GameEntry {
+        val history = playHistoryStore.get(game)
+        return game.copy(
+            lastPlayedEpochMs = history.lastPlayedEpochMs,
+            playtimeSeconds = history.playtimeSeconds,
+        )
+    }
     private fun requestFolderPicker() {
         if (_uiState.value.selectedPlatform == null) return
         _uiState.update { it.copy(folderPickerRequested = true) }
@@ -1268,7 +1386,8 @@ class MainViewModel(
         viewModelScope.launch {
             val scannedGames = romScanner.scan(platform, folderUri)
             val games = scannedGames.map { game ->
-                scrapeCache.get(game)?.let { cached -> applyScrapedData(game, cached) } ?: game
+                val scraped = scrapeCache.get(game)?.let { cached -> applyScrapedData(game, cached) } ?: game
+                applyHistory(scraped)
             }
 
             if (_uiState.value.screen != Screen.PLATFORM ||
