@@ -20,7 +20,8 @@ class TheGamesDbClient {
                 val platformId = platformId(game.platform)
                     ?: error("Platform is not supported by TheGamesDB scraper yet")
 
-                val encodedName = URLEncoder.encode(game.displayName, StandardCharsets.UTF_8.name())
+                val scrapeTitle = scraperTitle(game.displayName)
+                val encodedName = URLEncoder.encode(scrapeTitle, StandardCharsets.UTF_8.name())
                 val requestUrl = buildString {
                     append("https://api.thegamesdb.net/v1.1/Games/ByGameName")
                     append("?apikey=").append(URLEncoder.encode(apiKey, StandardCharsets.UTF_8.name()))
@@ -34,7 +35,7 @@ class TheGamesDbClient {
                 val games = json.getJSONObject("data").optJSONArray("games") ?: JSONArray()
                 if (games.length() == 0) error("No match found for ${game.displayName}")
 
-                val match = chooseBestMatch(game.displayName, games)
+                val match = chooseBestMatch(scrapeTitle, games)
                     ?: error("No suitable match found for ${game.displayName}")
 
                 val gameId = match.getInt("id").toString()
@@ -75,6 +76,13 @@ class TheGamesDbClient {
             }
         }
 
+    private fun scraperTitle(value: String): String =
+        value
+            .replace(Regex("""\([^)]*\)"""), " ")
+            .replace(Regex("""\[[^]]*]"""), " ")
+            .replace(Regex("""\{[^}]*}"""), " ")
+            .replace(Regex("""\s+"""), " ")
+            .trim()
     private fun chooseBestMatch(query: String, games: JSONArray): JSONObject? {
         val normalizedQuery = normalizeTitle(query)
         val queryTokens = normalizedQuery.split(' ').filter { it.isNotBlank() }.toSet()
