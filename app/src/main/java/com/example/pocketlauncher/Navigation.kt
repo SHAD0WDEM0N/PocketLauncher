@@ -10,6 +10,7 @@ import com.example.pocketlauncher.ui.settings.EmulatorSettingsScreen
 import com.example.pocketlauncher.ui.settings.CoreDownloadsScreen
 import com.example.pocketlauncher.ui.settings.FrontEndSettingsScreen
 import com.example.pocketlauncher.ui.settings.SettingsScreen
+import com.example.pocketlauncher.ui.settings.ScraperSettingsScreen
 import com.example.pocketlauncher.ui.settings.SystemManagerScreen
 
 @Composable
@@ -55,6 +56,13 @@ fun MainNavigation(
 
         Screen.FRONT_END_SETTINGS -> FrontEndSettingsScreen(
             selectedIndex = uiState.menuIndex,
+        )
+
+        Screen.SCRAPER_SETTINGS -> ScraperSettingsScreen(
+            apiKey = uiState.scraperApiKey,
+            status = uiState.scraperStatus,
+            running = uiState.scraperRunning,
+            onApiKeyChanged = viewModel::setTheGamesDbApiKey,
         )
 
         Screen.EMULATOR_SETTINGS -> EmulatorSettingsScreen(
