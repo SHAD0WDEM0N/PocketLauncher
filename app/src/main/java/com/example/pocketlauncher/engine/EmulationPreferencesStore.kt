@@ -5,6 +5,7 @@ import android.content.Context
 enum class VideoScaleMode { FIT, INTEGER, STRETCH }
 enum class VideoFilterMode { SHARP, SMOOTH }
 enum class VideoEffectMode { OFF, SCANLINES, LCD_GRID, PIXEL_GRID }
+enum class VideoBorderMode { OFF, AUTO }
 enum class MenuHotkey { L3_R3, START_SELECT, L1_R1 }
 
 class EmulationPreferencesStore(context: Context) {
@@ -32,6 +33,16 @@ class EmulationPreferencesStore(context: Context) {
 
     fun setEffectMode(value: VideoEffectMode) {
         prefs.edit().putString("effect_mode", value.name).apply()
+    }
+
+    fun borderMode(platformKey: String): VideoBorderMode = runCatching {
+        VideoBorderMode.valueOf(
+            prefs.getString("border_mode_${platformKey.uppercase()}", VideoBorderMode.OFF.name)!!
+        )
+    }.getOrDefault(VideoBorderMode.OFF)
+
+    fun setBorderMode(platformKey: String, value: VideoBorderMode) {
+        prefs.edit().putString("border_mode_${platformKey.uppercase()}", value.name).apply()
     }
 
     fun menuHotkey(): MenuHotkey = runCatching {
