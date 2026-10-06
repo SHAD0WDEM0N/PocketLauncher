@@ -165,20 +165,15 @@ private fun ConsoleCard(
 
         Spacer(Modifier.weight(1f))
 
-        if (label == "Game Boy Advance") {
+        if (label == "Game Boy Advance" || label == "Game Boy" || label == "Game Boy Color") {
             GeneratedConsoleArt(
                 label = label,
                 modifier = Modifier
                     .align(Alignment.CenterHorizontally)
-                    .size(width = 138.dp, height = 104.dp),
-            )
-        } else if (label == "Game Boy" || label == "Game Boy Color") {
-            HardwareRender(
-                label = label,
-                selected = selected,
-                modifier = Modifier
-                    .align(Alignment.CenterHorizontally)
-                    .size(width = 112.dp, height = 116.dp),
+                    .size(
+                        width = if (label == "Game Boy Advance") 138.dp else 112.dp,
+                        height = if (label == "Game Boy Advance") 104.dp else 116.dp,
+                    ),
             )
         } else {
             HardwareRender(
