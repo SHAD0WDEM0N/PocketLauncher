@@ -45,6 +45,7 @@ enum class EmulationMenuPage {
 enum class ScrapeMode {
     MISSING,
     MISSING_ARTWORK,
+    MISSING_METADATA,
     RESCRAPE_ALL,
 }
 
@@ -240,7 +241,7 @@ class MainViewModel(
     }
 
     private fun handleSettingsInput(button: PocketButton): Boolean {
-        if (moveMenu(button, 3)) return true
+        if (moveMenu(button, 4)) return true
 
         return when (button) {
             PocketButton.A -> {
@@ -296,7 +297,8 @@ class MainViewModel(
                 when (_uiState.value.menuIndex) {
                     0 -> scrapeGbaLibrary(ScrapeMode.MISSING)
                     1 -> scrapeGbaLibrary(ScrapeMode.MISSING_ARTWORK)
-                    2 -> scrapeGbaLibrary(ScrapeMode.RESCRAPE_ALL)
+                    2 -> scrapeGbaLibrary(ScrapeMode.MISSING_METADATA)
+                    3 -> scrapeGbaLibrary(ScrapeMode.RESCRAPE_ALL)
                 }
                 true
             }
@@ -1116,6 +1118,10 @@ class MainViewModel(
                     val cached = scrapeCache.get(game)
                     cached == null || cached.artworkUrl.isNullOrBlank()
                 }
+                ScrapeMode.MISSING_METADATA -> games.filter { game ->
+                    val cached = scrapeCache.get(game)
+                    cached == null || cached.releaseDate.isNullOrBlank() || cached.rating.isNullOrBlank()
+                }
                 ScrapeMode.RESCRAPE_ALL -> games
             }
 
@@ -1126,6 +1132,7 @@ class MainViewModel(
                         scraperStatus = when (mode) {
                             ScrapeMode.MISSING -> "NO NEW OR UNSCRAPED GAMES"
                             ScrapeMode.MISSING_ARTWORK -> "NO GAMES WITH MISSING ARTWORK"
+                            ScrapeMode.MISSING_METADATA -> "NO GAMES WITH MISSING METADATA"
                             ScrapeMode.RESCRAPE_ALL -> "NOTHING TO RESCRAPE"
                         },
                     )
