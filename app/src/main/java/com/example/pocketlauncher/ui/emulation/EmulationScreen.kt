@@ -3,7 +3,6 @@ package com.example.pocketlauncher.ui.emulation
 import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Arrangement
@@ -168,7 +167,9 @@ fun EmulationScreen(
                             Text(
                                 text = "◀",
                                 modifier = Modifier
-                                    .clickable { onStateSlotChange(-1) }
+                                    .pointerInput(Unit) {
+                                        detectTapGestures(onTap = { onStateSlotChange(-1) })
+                                    }
                                     .padding(horizontal = 10.dp, vertical = 6.dp),
                                 style = MaterialTheme.typography.bodyLarge,
                                 color = MaterialTheme.colorScheme.onBackground,
@@ -182,7 +183,9 @@ fun EmulationScreen(
                             Text(
                                 text = "▶",
                                 modifier = Modifier
-                                    .clickable { onStateSlotChange(1) }
+                                    .pointerInput(Unit) {
+                                        detectTapGestures(onTap = { onStateSlotChange(1) })
+                                    }
                                     .padding(horizontal = 10.dp, vertical = 6.dp),
                                 style = MaterialTheme.typography.bodyLarge,
                                 color = MaterialTheme.colorScheme.onBackground,
@@ -197,7 +200,9 @@ fun EmulationScreen(
                                     if (selected) Color.White.copy(alpha = 0.08f)
                                     else Color.Transparent
                                 )
-                                .clickable { onMenuItemClick(index) }
+                                .pointerInput(index) {
+                                    detectTapGestures(onTap = { onMenuItemClick(index) })
+                                }
                                 .padding(vertical = 6.dp),
                             style = MaterialTheme.typography.bodyLarge,
                             color = if (selected) {
