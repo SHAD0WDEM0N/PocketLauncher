@@ -159,7 +159,7 @@ fun PlatformScreen(
             text = if (folderLabel == null) {
                 "A  SELECT FOLDER     B  BACK"
             } else {
-                "◀  ▶  BROWSE    A  PLAY    X  FOLDER    Y  RESCAN    B  BACK"
+                "◀  ▶  BROWSE    A  PLAY    X  OPTIONS    Y  RESCAN    B  BACK"
             },
             style = MaterialTheme.typography.labelSmall.merge(
                 TextStyle(fontSize = metrics.hintTextSize)
