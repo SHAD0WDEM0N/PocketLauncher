@@ -379,10 +379,10 @@ class MainViewModel(
         return when (button) {
             PocketButton.A -> {
                 when (_uiState.value.menuIndex) {
-                    0 -> scrapeGbaLibrary(ScrapeMode.MISSING)
-                    1 -> scrapeGbaLibrary(ScrapeMode.MISSING_ARTWORK)
-                    2 -> scrapeGbaLibrary(ScrapeMode.MISSING_METADATA)
-                    3 -> scrapeGbaLibrary(ScrapeMode.RESCRAPE_ALL)
+                    0 -> scrapeHandheldLibraries(ScrapeMode.MISSING)
+                    1 -> scrapeHandheldLibraries(ScrapeMode.MISSING_ARTWORK)
+                    2 -> scrapeHandheldLibraries(ScrapeMode.MISSING_METADATA)
+                    3 -> scrapeHandheldLibraries(ScrapeMode.RESCRAPE_ALL)
                 }
                 true
             }
@@ -1529,7 +1529,7 @@ class MainViewModel(
         }
     }
 
-    fun scrapeGbaLibrary(mode: ScrapeMode) {
+    fun scrapeHandheldLibraries(mode: ScrapeMode) {
         if (_uiState.value.scraperRunning) return
 
         val apiKey = _uiState.value.scraperApiKey.trim()
@@ -1538,9 +1538,16 @@ class MainViewModel(
             return
         }
 
-        val folderUri = folderStore.getFolderUri(Platform.GBA)
-        if (folderUri == null) {
-            _uiState.update { it.copy(scraperStatus = "CONFIGURE A GBA ROM FOLDER FIRST") }
+        val configuredPlatforms = enabledPlatformsInOrder()
+            .filter { it == Platform.GB || it == Platform.GBC || it == Platform.GBA }
+            .mapNotNull { platform ->
+                folderStore.getFolderUri(platform)?.let { uri -> platform to uri }
+            }
+
+        if (configuredPlatforms.isEmpty()) {
+            _uiState.update {
+                it.copy(scraperStatus = "CONFIGURE A GB, GBC OR GBA ROM FOLDER FIRST")
+            }
             return
         }
 
@@ -1548,32 +1555,37 @@ class MainViewModel(
             _uiState.update {
                 it.copy(
                     scraperRunning = true,
-                    scraperStatus = "SCANNING GBA LIBRARY...",
+                    scraperStatus = "SCANNING HANDHELD LIBRARIES...",
                 )
             }
 
-            val games = romScanner.scan(Platform.GBA, folderUri)
-            if (games.isEmpty()) {
+            val allGames = buildList {
+                for ((platform, folderUri) in configuredPlatforms) {
+                    addAll(romScanner.scan(platform, folderUri))
+                }
+            }
+
+            if (allGames.isEmpty()) {
                 _uiState.update {
                     it.copy(
                         scraperRunning = false,
-                        scraperStatus = "NO GBA ROMS FOUND",
+                        scraperStatus = "NO HANDHELD ROMS FOUND",
                     )
                 }
                 return@launch
             }
 
             val targets = when (mode) {
-                ScrapeMode.MISSING -> games.filter { scrapeCache.get(it) == null }
-                ScrapeMode.MISSING_ARTWORK -> games.filter { game ->
+                ScrapeMode.MISSING -> allGames.filter { scrapeCache.get(it) == null }
+                ScrapeMode.MISSING_ARTWORK -> allGames.filter { game ->
                     val cached = scrapeCache.get(game)
                     cached == null || cached.artworkUrl.isNullOrBlank()
                 }
-                ScrapeMode.MISSING_METADATA -> games.filter { game ->
+                ScrapeMode.MISSING_METADATA -> allGames.filter { game ->
                     val cached = scrapeCache.get(game)
                     cached == null || cached.releaseDate.isNullOrBlank() || cached.rating.isNullOrBlank()
                 }
-                ScrapeMode.RESCRAPE_ALL -> games
+                ScrapeMode.RESCRAPE_ALL -> allGames
             }
 
             if (targets.isEmpty()) {
@@ -1598,7 +1610,9 @@ class MainViewModel(
 
             for ((index, game) in cappedTargets.withIndex()) {
                 _uiState.update {
-                    it.copy(scraperStatus = "${index + 1} / ${cappedTargets.size}  ·  ${game.displayName}")
+                    it.copy(
+                        scraperStatus = "${index + 1} / ${cappedTargets.size}  ·  ${game.platform.displayName}  ·  ${game.displayName}"
+                    )
                 }
 
                 val result = theGamesDbClient.scrape(game, apiKey)
@@ -1608,18 +1622,14 @@ class MainViewModel(
                     completed += 1
 
                     _uiState.update { state ->
-                        val updatedGames = if (state.selectedPlatform == Platform.GBA) {
-                            state.games.map { existing ->
-                                if (existing.uri == game.uri) applyScrapedData(existing, data) else existing
-                            }
-                        } else {
-                            state.games
+                        val updatedGames = state.games.map { existing ->
+                            if (existing.uri == game.uri) applyScrapedData(existing, data) else existing
                         }
                         state.copy(games = updatedGames)
                     }
                 } else {
                     failed += 1
-                    failedNames += game.displayName
+                    failedNames += "${game.platform.name}: ${game.displayName}"
                 }
             }
 
