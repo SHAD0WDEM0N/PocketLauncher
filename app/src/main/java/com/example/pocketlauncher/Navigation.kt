@@ -128,6 +128,8 @@ fun MainNavigation(
             scaleMode = uiState.videoScaleMode,
             filterMode = uiState.videoFilterMode,
             effectMode = uiState.videoEffectMode,
+            borderMode = uiState.videoBorderMode,
+            platformKey = uiState.emulationPlatformKey,
             menuHotkey = uiState.menuHotkey,
             selectedStateSlot = uiState.selectedStateSlot,
             selectedStateSummary = uiState.selectedStateSummary,
