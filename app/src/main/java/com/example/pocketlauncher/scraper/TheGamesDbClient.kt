@@ -21,25 +21,38 @@ class TheGamesDbClient {
                     ?: error("Platform is not supported by TheGamesDB scraper yet")
 
                 val scrapeTitle = scraperTitle(game.displayName)
-                val encodedName = URLEncoder.encode(scrapeTitle, StandardCharsets.UTF_8.name())
-                val requestUrl = buildString {
-                    append("https://api.thegamesdb.net/v1.1/Games/ByGameName")
-                    append("?apikey=").append(URLEncoder.encode(apiKey, StandardCharsets.UTF_8.name()))
-                    append("&name=").append(encodedName)
-                    append("&filter%5Bplatform%5D=").append(platformId)
-                    append("&fields=rating,platform")
-                    append("&include=boxart,platform")
+                val queries = scraperQueries(scrapeTitle)
+                var json: JSONObject? = null
+                var games: JSONArray? = null
+                var match: JSONObject? = null
+
+                for (query in queries) {
+                    val encodedName = URLEncoder.encode(query, StandardCharsets.UTF_8.name())
+                    val requestUrl = buildString {
+                        append("https://api.thegamesdb.net/v1.1/Games/ByGameName")
+                        append("?apikey=").append(URLEncoder.encode(apiKey, StandardCharsets.UTF_8.name()))
+                        append("&name=").append(encodedName)
+                        append("&filter%5Bplatform%5D=").append(platformId)
+                        append("&fields=rating,platform")
+                        append("&include=boxart,platform")
+                    }
+
+                    val candidateJson = JSONObject(get(requestUrl))
+                    val candidateGames = candidateJson.getJSONObject("data").optJSONArray("games") ?: JSONArray()
+                    if (candidateGames.length() == 0) continue
+
+                    val candidateMatch = chooseBestMatch(query, candidateGames) ?: continue
+                    json = candidateJson
+                    games = candidateGames
+                    match = candidateMatch
+                    break
                 }
 
-                val json = JSONObject(get(requestUrl))
-                val games = json.getJSONObject("data").optJSONArray("games") ?: JSONArray()
-                if (games.length() == 0) error("No match found for ${game.displayName}")
+                val matchedJson = json ?: error("No match found for ${game.displayName}")
+                val matchedGame = match ?: error("No suitable match found for ${game.displayName}")
 
-                val match = chooseBestMatch(scrapeTitle, games)
-                    ?: error("No suitable match found for ${game.displayName}")
-
-                val gameId = match.getInt("id").toString()
-                val include = json.optJSONObject("include")
+                val gameId = matchedGame.getInt("id").toString()
+                val include = matchedJson.optJSONObject("include")
                 val boxart = include?.optJSONObject("boxart")
                 val baseUrl = boxart
                     ?.optJSONObject("base_url")
@@ -64,25 +77,46 @@ class TheGamesDbClient {
                 }
 
                 ScrapedGameData(
-                    title = match.optString("game_title").takeIf { it.isNotBlank() },
+                    title = matchedGame.optString("game_title").takeIf { it.isNotBlank() },
                     artworkUrl = artworkUrl,
                     developer = null,
                     publisher = null,
-                    releaseDate = match.optString("release_date").takeIf { it.isNotBlank() },
+                    releaseDate = matchedGame.optString("release_date").takeIf { it.isNotBlank() },
                     genre = null,
-                    rating = match.optString("rating").takeIf { it.isNotBlank() },
+                    rating = matchedGame.optString("rating").takeIf { it.isNotBlank() },
                     provider = "TheGamesDB",
                 )
             }
         }
 
-    private fun scraperTitle(value: String): String =
-        value
+    private fun scraperTitle(value: String): String {
+        val stripped = value
             .replace(Regex("""\([^)]*\)"""), " ")
             .replace(Regex("""\[[^]]*]"""), " ")
             .replace(Regex("""\{[^}]*}"""), " ")
             .replace(Regex("""\s+"""), " ")
             .trim()
+
+        val articlePattern = Regex("""^(.+),\s*(The|A|An)\s*[-:]\s*(.+)$""", RegexOption.IGNORE_CASE)
+        val match = articlePattern.matchEntire(stripped)
+        return if (match != null) {
+            val base = match.groupValues[1].trim()
+            val article = match.groupValues[2].trim()
+            val rest = match.groupValues[3].trim()
+            "$article $base: $rest"
+        } else {
+            stripped
+        }
+    }
+
+    private fun scraperQueries(title: String): List<String> =
+        linkedSetOf(
+            title,
+            title.replace(" & ", " / "),
+            title.replace(" & ", " and "),
+            title.replace(" / ", " & "),
+            title.replace(" / ", " and "),
+        ).filter { it.isNotBlank() }
     private fun chooseBestMatch(query: String, games: JSONArray): JSONObject? {
         val normalizedQuery = normalizeTitle(query)
         val queryTokens = normalizedQuery.split(' ').filter { it.isNotBlank() }.toSet()
