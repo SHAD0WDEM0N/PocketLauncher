@@ -48,6 +48,9 @@ import com.example.pocketlauncher.ui.common.pocketLayoutMetrics
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.net.URL
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @Composable
 fun PlatformScreen(
@@ -171,6 +174,78 @@ fun PlatformScreen(
     }
 }
 
+@Composable
+fun RecentlyPlayedScreen(
+    games: List<GameEntry>,
+    selectedIndex: Int,
+    isScanning: Boolean,
+) {
+    val metrics = pocketLayoutMetrics()
+    val listState = rememberLazyListState()
+    val safeIndex = selectedIndex.coerceIn(0, (games.size - 1).coerceAtLeast(0))
+    val selectedGame = games.getOrNull(safeIndex)
+
+    LaunchedEffect(safeIndex, games.size) {
+        if (games.isNotEmpty()) listState.animateScrollToItem(safeIndex)
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .padding(horizontal = metrics.horizontalPadding),
+    ) {
+        Spacer(Modifier.height(metrics.topPadding))
+        Text(
+            text = "Recently Played",
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onBackground,
+        )
+        Spacer(Modifier.height(20.dp))
+
+        when {
+            isScanning -> EmptyMessage("Loading...", "Reading recent play history.")
+            games.isEmpty() -> EmptyMessage("No recent games yet.", "Launch and quit a game to add it here.")
+            else -> {
+                LazyRow(
+                    state = listState,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    itemsIndexed(games, key = { _, game -> game.uri }) { index, game ->
+                        CartridgeCard(
+                            game = game,
+                            selected = index == safeIndex,
+                            platform = game.platform,
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(24.dp))
+
+                if (selectedGame != null) {
+                    Text(
+                        text = selectedGame.displayName,
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Spacer(Modifier.height(18.dp))
+                    GameMetadata(selectedGame)
+                }
+            }
+        }
+
+        Spacer(Modifier.weight(1f))
+        Text(
+            text = "◀  ▶  BROWSE    A  PLAY    X  OPTIONS    B  BACK",
+            style = MaterialTheme.typography.labelSmall.merge(TextStyle(fontSize = metrics.hintTextSize)),
+            color = PocketWhiteMuted,
+        )
+        Spacer(Modifier.height(24.dp))
+    }
+}
 @Composable
 private fun CartridgeCard(
     game: GameEntry,
@@ -330,14 +405,24 @@ private fun GameMetadata(game: GameEntry) {
         }
 
         Column {
-            MetadataRow("LAST PLAYED", "—")
-            MetadataRow("PLAYTIME", "—")
-            MetadataRow("MEDIA", if (game.artworkUrl != null) "SCRAPED" else "NOT SCRAPED")
-            MetadataRow("SOURCE", game.scrapeProvider ?: "—")
+            MetadataRow("LAST PLAYED", formatLastPlayed(game.lastPlayedEpochMs))
+            MetadataRow("PLAYTIME", formatPlaytime(game.playtimeSeconds))
         }
     }
 }
 
+private fun formatLastPlayed(epochMs: Long): String {
+    if (epochMs <= 0L) return "—"
+    return SimpleDateFormat("dd MMM yyyy  HH:mm", Locale.getDefault()).format(Date(epochMs))
+}
+
+private fun formatPlaytime(seconds: Long): String {
+    if (seconds <= 0L) return "—"
+    if (seconds < 60L) return "< 1 min"
+    val hours = seconds / 3600L
+    val minutes = (seconds % 3600L) / 60L
+    return if (hours > 0L) "${hours}h ${minutes}m" else "${minutes}m"
+}
 @Composable
 private fun MetadataRow(label: String, value: String) {
     Row(modifier = Modifier.padding(vertical = 2.dp)) {
