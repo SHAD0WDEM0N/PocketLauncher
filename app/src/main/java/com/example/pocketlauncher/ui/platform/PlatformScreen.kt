@@ -306,8 +306,8 @@ private fun ArtworkCard(
         }
     }
 
-    val maxHeight = 146.dp
-    val maxWidth = 118.dp
+    val maxHeight = 154.dp
+    val maxWidth = 132.dp
     val safeAspect = aspectRatio.coerceIn(0.58f, 0.95f)
 
     val targetWidth: Dp
@@ -326,18 +326,12 @@ private fun ArtworkCard(
             .height(targetHeight)
             .offset(y = if (selected) (-3).dp else 0.dp)
             .graphicsLayer {
-                scaleX = if (selected) 1.035f else 1f
-                scaleY = if (selected) 1.035f else 1f
-                shadowElevation = if (selected) 14f else 7f
-                shape = RoundedCornerShape(4.dp)
-                clip = false
-            }
-            .border(
-                width = if (selected) 2.dp else 1.dp,
-                color = if (selected) Color.White else Color(0xFF444444),
-                shape = RoundedCornerShape(4.dp),
-            )
-            .clip(RoundedCornerShape(4.dp)),
+                scaleX = if (selected) 1.025f else 1f
+                scaleY = if (selected) 1.025f else 1f
+                shadowElevation = if (selected) 12f else 4f
+                shape = RoundedCornerShape(3.dp)
+                clip = true
+            },
         contentAlignment = Alignment.Center,
     ) {
         if (game.artworkUrl != null) {
