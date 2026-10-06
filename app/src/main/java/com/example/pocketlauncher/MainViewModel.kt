@@ -1143,6 +1143,7 @@ class MainViewModel(
             val cappedTargets = targets.take(50)
             var completed = 0
             var failed = 0
+            val failedNames = mutableListOf<String>()
 
             for ((index, game) in cappedTargets.withIndex()) {
                 _uiState.update {
@@ -1167,6 +1168,7 @@ class MainViewModel(
                     }
                 } else {
                     failed += 1
+                    failedNames += game.displayName
                 }
             }
 
@@ -1175,7 +1177,10 @@ class MainViewModel(
                     scraperRunning = false,
                     scraperStatus = buildString {
                         append("SCRAPED ").append(completed)
-                        if (failed > 0) append("  ·  ").append(failed).append(" FAILED")
+                        if (failed > 0) {
+                            append("  ·  ").append(failed).append(" FAILED")
+                            append("  ·  ").append(failedNames.take(2).joinToString(", "))
+                        }
                         if (targets.size > cappedTargets.size) {
                             append("  ·  ").append(targets.size - cappedTargets.size).append(" REMAINING")
                         }
