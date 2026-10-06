@@ -91,7 +91,7 @@ fun CoreDownloadsScreen(
 
     ConsoleMenuScreen(
         title = "CORE DOWNLOADS",
-        subtitle = status,
+        subtitle = "$status  ·  GB / GBC / GBA",
         items = listOf(label),
         selectedIndex = 0,
         footer = if (installed) {
