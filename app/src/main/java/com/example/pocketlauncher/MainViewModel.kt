@@ -14,6 +14,7 @@ import com.example.pocketlauncher.engine.BatterySaveManager
 import com.example.pocketlauncher.engine.SaveStateManager
 import com.example.pocketlauncher.engine.EmulationPreferencesStore
 import com.example.pocketlauncher.engine.MenuHotkey
+import com.example.pocketlauncher.engine.VideoBorderMode
 import com.example.pocketlauncher.engine.VideoEffectMode
 import com.example.pocketlauncher.engine.VideoFilterMode
 import com.example.pocketlauncher.engine.VideoScaleMode
@@ -115,6 +116,8 @@ data class PocketUiState(
     val videoScaleMode: VideoScaleMode = VideoScaleMode.FIT,
     val videoFilterMode: VideoFilterMode = VideoFilterMode.SHARP,
     val videoEffectMode: VideoEffectMode = VideoEffectMode.OFF,
+    val videoBorderMode: VideoBorderMode = VideoBorderMode.OFF,
+    val emulationPlatformKey: String = "GBA",
     val menuHotkey: MenuHotkey = MenuHotkey.L3_R3,
     val selectedStateSlot: Int = 0,
     val selectedStateSummary: String = "Empty",
@@ -827,7 +830,7 @@ class MainViewModel(
             val state = _uiState.value
             val itemCount = when (state.emulationMenuPage) {
                 EmulationMenuPage.MAIN -> 8
-                EmulationMenuPage.DISPLAY -> 4
+                EmulationMenuPage.DISPLAY -> 5
                 EmulationMenuPage.CONTROLLER -> 3
             }
 
@@ -991,7 +994,21 @@ class MainViewModel(
                         )
                     }
                 }
-                3 -> _uiState.update {
+                3 -> {
+                    val next = if (state.videoBorderMode == VideoBorderMode.OFF) {
+                        VideoBorderMode.AUTO
+                    } else {
+                        VideoBorderMode.OFF
+                    }
+                    emulationPreferences.setBorderMode(state.emulationPlatformKey, next)
+                    _uiState.update {
+                        it.copy(
+                            videoBorderMode = next,
+                            emulationMenuStatus = "Border updated",
+                        )
+                    }
+                }
+                4 -> _uiState.update {
                     it.copy(
                         emulationMenuPage = EmulationMenuPage.MAIN,
                         emulationMenuIndex = 4,
@@ -1195,6 +1212,8 @@ class MainViewModel(
                     selectedStateSlot = 0,
                     selectedStateSummary = saveStateManager.slotSummary(game, 0),
                     selectedStateThumbnailPath = saveStateManager.thumbnailPath(game, 0),
+                    videoBorderMode = emulationPreferences.borderMode(game.platform.name),
+                    emulationPlatformKey = game.platform.name,
                 )
             }
 
