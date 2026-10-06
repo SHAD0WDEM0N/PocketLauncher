@@ -194,8 +194,7 @@ class TheGamesDbClient {
     }
 
     private fun normalizeTitle(value: String): String =
-        Normalizer.normalize(value, Normalizer.Form.NFD)
-            .replace(Regex("""\p{M}+"""), "")
+        stripDiacritics(value)
             .lowercase()
             .replace("&", " and ")
             .replace("/", " and ")
@@ -203,6 +202,20 @@ class TheGamesDbClient {
             .replace(Regex("\\s+"), " ")
             .replace(" version", "")
             .trim()
+
+    private fun stripDiacritics(value: String): String {
+        val decomposed = Normalizer.normalize(value, Normalizer.Form.NFD)
+        return buildString(decomposed.length) {
+            for (char in decomposed) {
+                when (Character.getType(char)) {
+                    Character.NON_SPACING_MARK.toInt(),
+                    Character.COMBINING_SPACING_MARK.toInt(),
+                    Character.ENCLOSING_MARK.toInt() -> Unit
+                    else -> append(char)
+                }
+            }
+        }
+    }
 
     private fun platformId(platform: Platform): Int? = when (platform) {
         Platform.GBA -> 5
