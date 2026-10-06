@@ -1,6 +1,8 @@
 package com.example.pocketlauncher.ui.home
 
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Color as AndroidColor
 import android.util.Base64
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
@@ -206,7 +208,13 @@ private fun GeneratedConsoleArt(
             .use { it.readText() }
             .trim()
         val bytes = Base64.decode(encoded, Base64.DEFAULT)
-        BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap()
+        val decoded = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+        val cleaned = if (label == "Game Boy" || label == "Game Boy Color") {
+            decoded?.let(::removeEdgeConnectedBackground)
+        } else {
+            decoded
+        }
+        cleaned?.asImageBitmap()
     }
 
     if (bitmap != null) {
@@ -217,6 +225,62 @@ private fun GeneratedConsoleArt(
             contentScale = ContentScale.Fit,
         )
     }
+}
+
+private fun removeEdgeConnectedBackground(source: Bitmap): Bitmap {
+    val bitmap = source.copy(Bitmap.Config.ARGB_8888, true)
+    val width = bitmap.width
+    val height = bitmap.height
+    if (width <= 0 || height <= 0) return bitmap
+
+    val pixels = IntArray(width * height)
+    bitmap.getPixels(pixels, 0, width, 0, 0, width, height)
+
+    val visited = BooleanArray(pixels.size)
+    val queue = IntArray(pixels.size)
+    var head = 0
+    var tail = 0
+
+    fun isBackground(pixel: Int): Boolean {
+        val r = AndroidColor.red(pixel)
+        val g = AndroidColor.green(pixel)
+        val b = AndroidColor.blue(pixel)
+        return r <= 48 && g <= 48 && b <= 48
+    }
+
+    fun enqueue(index: Int) {
+        if (index !in pixels.indices || visited[index] || !isBackground(pixels[index])) return
+        visited[index] = true
+        queue[tail++] = index
+    }
+
+    for (x in 0 until width) {
+        enqueue(x)
+        enqueue((height - 1) * width + x)
+    }
+    for (y in 0 until height) {
+        enqueue(y * width)
+        enqueue(y * width + width - 1)
+    }
+
+    while (head < tail) {
+        val index = queue[head++]
+        val x = index % width
+        val y = index / width
+        if (x > 0) enqueue(index - 1)
+        if (x + 1 < width) enqueue(index + 1)
+        if (y > 0) enqueue(index - width)
+        if (y + 1 < height) enqueue(index + width)
+    }
+
+    for (i in pixels.indices) {
+        if (visited[i]) {
+            pixels[i] = pixels[i] and 0x00FFFFFF
+        }
+    }
+
+    bitmap.setPixels(pixels, 0, width, 0, 0, width, height)
+    return bitmap
 }
 
 @Composable
