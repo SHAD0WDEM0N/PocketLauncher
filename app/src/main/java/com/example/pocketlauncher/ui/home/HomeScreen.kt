@@ -165,15 +165,20 @@ private fun ConsoleCard(
 
         Spacer(Modifier.weight(1f))
 
-        if (label == "Game Boy Advance" || label == "Game Boy" || label == "Game Boy Color") {
+        if (label == "Game Boy Advance") {
             GeneratedConsoleArt(
                 label = label,
                 modifier = Modifier
                     .align(Alignment.CenterHorizontally)
-                    .size(
-                        width = if (label == "Game Boy Advance") 138.dp else 112.dp,
-                        height = if (label == "Game Boy Advance") 104.dp else 116.dp,
-                    ),
+                    .size(width = 138.dp, height = 104.dp),
+            )
+        } else if (label == "Game Boy" || label == "Game Boy Color") {
+            HardwareRender(
+                label = label,
+                selected = selected,
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .size(width = 112.dp, height = 116.dp),
             )
         } else {
             HardwareRender(
@@ -225,7 +230,13 @@ private fun MetadataPanel(
     manufacturer: String,
     releaseYear: String,
 ) {
-    val isPlatform = manufacturer.isNotBlank() && label != "Recently Played" && label != "Settings"
+    if (label == "Recently Played" || label == "Settings") {
+        MetadataCell(
+            heading = "COLLECTION",
+            value = if (label == "Recently Played") "RECENT" else "CONFIG",
+        )
+        return
+    }
 
     Row(
         horizontalArrangement = Arrangement.spacedBy(44.dp),
@@ -233,11 +244,7 @@ private fun MetadataPanel(
     ) {
         MetadataCell(
             heading = "TYPE",
-            value = when {
-                label == "Recently Played" -> "LIBRARY"
-                label == "Settings" -> "SYSTEM"
-                else -> "PLATFORM"
-            },
+            value = "PLATFORM",
         )
 
         MetadataCell(
@@ -247,16 +254,12 @@ private fun MetadataPanel(
 
         MetadataCell(
             heading = "RELEASED",
-            value = if (isPlatform) releaseYear.ifBlank { "—" } else "—",
+            value = releaseYear.ifBlank { "—" },
         )
 
         MetadataCell(
             heading = "COLLECTION",
-            value = when (label) {
-                "Recently Played" -> "RECENT"
-                "Settings" -> "CONFIG"
-                else -> label.uppercase()
-            },
+            value = label.uppercase(),
         )
     }
 }
