@@ -2,10 +2,6 @@ package com.example.pocketlauncher.ui.platform
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.graphics.Canvas as AndroidCanvas
-import android.graphics.Matrix
-import android.graphics.Paint as AndroidPaint
-import android.graphics.RectF as AndroidRectF
 import android.util.Base64
 import android.util.LruCache
 import androidx.compose.foundation.Canvas
@@ -42,12 +38,10 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -275,6 +269,12 @@ private fun CartridgeCard(
     val outerBackground = if (selected) Color(0xFFEDEAE3) else Color(0xFF181818)
     val outerBorder = if (selected) Color.White else Color(0xFF2A2A2A)
 
+    val frameColor = when (platform) {
+        Platform.GB -> Color(0xFFB8B4AA)
+        Platform.GBC -> Color(0xFF667A86)
+        Platform.GBA -> Color(0xFF5B5A82)
+    }
+
     Box(
         modifier = Modifier
             .width(170.dp)
@@ -284,65 +284,58 @@ private fun CartridgeCard(
         contentAlignment = Alignment.Center,
     ) {
         Box(
-            modifier = Modifier.size(width = 126.dp, height = 148.dp),
+            modifier = Modifier
+                .width(104.dp)
+                .height(138.dp),
             contentAlignment = Alignment.Center,
         ) {
-            GameCaseTemplate(
-                modifier = Modifier.fillMaxSize(),
+            // Rear plate gives the flat cover physical depth without distorting scraped art.
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .offset(x = 7.dp, y = 6.dp)
+                    .background(frameColor.copy(alpha = if (selected) 0.92f else 0.72f))
+                    .border(1.dp, Color.Black.copy(alpha = 0.35f))
             )
 
-            if (game.artworkUrl != null) {
-                PerspectiveArtwork(
-                    url = game.artworkUrl,
-                    modifier = Modifier.fillMaxSize(),
-                )
-            } else {
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .offset(x = 8.dp, y = 0.dp)
-                        .width(78.dp)
-                        .height(106.dp)
-                        .clip(RoundedCornerShape(3.dp))
-                        .background(Color(0xFF151515)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        text = game.displayName.uppercase(),
-                        modifier = Modifier.padding(8.dp),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Color.White.copy(alpha = 0.88f),
-                        textAlign = TextAlign.Center,
-                        maxLines = 5,
-                        overflow = TextOverflow.Ellipsis,
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .offset(y = if (selected) (-3).dp else 0.dp)
+                    .background(frameColor)
+                    .border(
+                        width = if (selected) 2.dp else 1.dp,
+                        color = if (selected) Color.White else Color.Black.copy(alpha = 0.40f),
                     )
+                    .padding(5.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                if (game.artworkUrl != null) {
+                    RemoteArtwork(
+                        url = game.artworkUrl,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Fit,
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color(0xFF111111)),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = game.displayName.uppercase(),
+                            modifier = Modifier.padding(8.dp),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color.White.copy(alpha = 0.88f),
+                            textAlign = TextAlign.Center,
+                            maxLines = 5,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun GameCaseTemplate(
-    modifier: Modifier = Modifier,
-) {
-    val context = LocalContext.current
-    val bitmap = remember {
-        val encoded = context.resources.openRawResource(R.raw.game_case_template_b64)
-            .bufferedReader()
-            .use { it.readText() }
-            .trim()
-        val bytes = Base64.decode(encoded, Base64.DEFAULT)
-        BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap()
-    }
-
-    if (bitmap != null) {
-        Image(
-            bitmap = bitmap,
-            contentDescription = null,
-            modifier = modifier,
-            contentScale = ContentScale.Fit,
-        )
     }
 }
 
@@ -425,80 +418,6 @@ private fun decodeArtwork(url: String): Bitmap? {
         }
     }.getOrNull()
 }
-@Composable
-private fun PerspectiveArtwork(
-    url: String,
-    modifier: Modifier = Modifier,
-) {
-    var bitmap by remember(url) {
-        mutableStateOf(ArtworkMemoryCache.get(url))
-    }
-
-    LaunchedEffect(url) {
-        if (bitmap == null) {
-            bitmap = withContext(Dispatchers.IO) {
-                decodeArtwork(url)
-            }
-        }
-    }
-
-    val artwork = bitmap ?: return
-
-    Canvas(modifier = modifier) {
-        drawIntoCanvas { canvas ->
-            val sx = size.width / 126f
-            val sy = size.height / 148f
-
-            // Match the actual visible front insert of the rendered 2.5D case.
-            // This is intentionally a trapezoid rather than a rotated rectangle.
-            val dst = floatArrayOf(
-                33f * sx, 27f * sy,   // top-left
-                107f * sx, 22f * sy,  // top-right
-                108f * sx, 122f * sy, // bottom-right
-                34f * sx, 129f * sy,  // bottom-left
-            )
-            // Normalize scraper covers onto a consistent portrait canvas first.
-            // This preserves the original artwork proportions and avoids the tall/narrow stretch
-            // when different providers return slightly different box-art aspect ratios.
-            val targetWidth = 320
-            val targetHeight = 400
-            val normalized = Bitmap.createBitmap(targetWidth, targetHeight, Bitmap.Config.ARGB_8888)
-            val normalizedCanvas = AndroidCanvas(normalized)
-            val fitPaint = AndroidPaint(AndroidPaint.ANTI_ALIAS_FLAG or AndroidPaint.FILTER_BITMAP_FLAG)
-
-            val scale = minOf(
-                targetWidth.toFloat() / artwork.width.toFloat(),
-                targetHeight.toFloat() / artwork.height.toFloat(),
-            )
-            val drawWidth = artwork.width * scale
-            val drawHeight = artwork.height * scale
-            val left = (targetWidth - drawWidth) / 2f
-            val top = (targetHeight - drawHeight) / 2f
-
-            normalizedCanvas.drawBitmap(
-                artwork,
-                null,
-                AndroidRectF(left, top, left + drawWidth, top + drawHeight),
-                fitPaint,
-            )
-
-            val src = floatArrayOf(
-                0f, 0f,
-                targetWidth.toFloat(), 0f,
-                targetWidth.toFloat(), targetHeight.toFloat(),
-                0f, targetHeight.toFloat(),
-            )
-
-            val matrix = Matrix().apply {
-                setPolyToPoly(src, 0, dst, 0, 4)
-            }
-            val paint = AndroidPaint(AndroidPaint.ANTI_ALIAS_FLAG or AndroidPaint.FILTER_BITMAP_FLAG)
-            canvas.nativeCanvas.drawBitmap(normalized, matrix, paint)
-            normalized.recycle()
-        }
-    }
-}
-
 @Composable
 private fun RemoteArtwork(
     url: String,
