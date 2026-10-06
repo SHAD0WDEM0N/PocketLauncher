@@ -11,28 +11,66 @@ enum class MenuHotkey { L3_R3, START_SELECT, L1_R1 }
 class EmulationPreferencesStore(context: Context) {
     private val prefs = context.getSharedPreferences("emulation_preferences", Context.MODE_PRIVATE)
 
-    fun scaleMode(): VideoScaleMode = runCatching {
-        VideoScaleMode.valueOf(prefs.getString("scale_mode", VideoScaleMode.FIT.name)!!)
-    }.getOrDefault(VideoScaleMode.FIT)
+    private fun normalizedKey(platformKey: String): String = platformKey.uppercase()
 
-    fun setScaleMode(value: VideoScaleMode) {
-        prefs.edit().putString("scale_mode", value.name).apply()
+    fun scaleMode(platformKey: String): VideoScaleMode {
+        val key = normalizedKey(platformKey)
+        val default = if (key == "GBA") {
+            runCatching {
+                VideoScaleMode.valueOf(prefs.getString("scale_mode", VideoScaleMode.FIT.name)!!)
+            }.getOrDefault(VideoScaleMode.FIT)
+        } else {
+            VideoScaleMode.FIT
+        }
+        return runCatching {
+            VideoScaleMode.valueOf(
+                prefs.getString("scale_mode_$key", default.name)!!
+            )
+        }.getOrDefault(default)
     }
 
-    fun filterMode(): VideoFilterMode = runCatching {
-        VideoFilterMode.valueOf(prefs.getString("filter_mode", VideoFilterMode.SHARP.name)!!)
-    }.getOrDefault(VideoFilterMode.SHARP)
-
-    fun setFilterMode(value: VideoFilterMode) {
-        prefs.edit().putString("filter_mode", value.name).apply()
+    fun setScaleMode(platformKey: String, value: VideoScaleMode) {
+        prefs.edit().putString("scale_mode_${normalizedKey(platformKey)}", value.name).apply()
     }
 
-    fun effectMode(): VideoEffectMode = runCatching {
-        VideoEffectMode.valueOf(prefs.getString("effect_mode", VideoEffectMode.OFF.name)!!)
-    }.getOrDefault(VideoEffectMode.OFF)
+    fun filterMode(platformKey: String): VideoFilterMode {
+        val key = normalizedKey(platformKey)
+        val default = if (key == "GBA") {
+            runCatching {
+                VideoFilterMode.valueOf(prefs.getString("filter_mode", VideoFilterMode.SHARP.name)!!)
+            }.getOrDefault(VideoFilterMode.SHARP)
+        } else {
+            VideoFilterMode.SHARP
+        }
+        return runCatching {
+            VideoFilterMode.valueOf(
+                prefs.getString("filter_mode_$key", default.name)!!
+            )
+        }.getOrDefault(default)
+    }
 
-    fun setEffectMode(value: VideoEffectMode) {
-        prefs.edit().putString("effect_mode", value.name).apply()
+    fun setFilterMode(platformKey: String, value: VideoFilterMode) {
+        prefs.edit().putString("filter_mode_${normalizedKey(platformKey)}", value.name).apply()
+    }
+
+    fun effectMode(platformKey: String): VideoEffectMode {
+        val key = normalizedKey(platformKey)
+        val default = when (key) {
+            "GB", "GBC" -> VideoEffectMode.LCD_GRID
+            "GBA" -> runCatching {
+                VideoEffectMode.valueOf(prefs.getString("effect_mode", VideoEffectMode.OFF.name)!!)
+            }.getOrDefault(VideoEffectMode.OFF)
+            else -> VideoEffectMode.OFF
+        }
+        return runCatching {
+            VideoEffectMode.valueOf(
+                prefs.getString("effect_mode_$key", default.name)!!
+            )
+        }.getOrDefault(default)
+    }
+
+    fun setEffectMode(platformKey: String, value: VideoEffectMode) {
+        prefs.edit().putString("effect_mode_${normalizedKey(platformKey)}", value.name).apply()
     }
 
     fun borderMode(platformKey: String): VideoBorderMode = runCatching {
