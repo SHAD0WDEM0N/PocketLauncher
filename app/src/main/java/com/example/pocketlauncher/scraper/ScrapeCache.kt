@@ -49,6 +49,14 @@ class ScrapeCache(context: Context) {
         prefs.edit().putString(key(game), json.toString()).apply()
     }
 
+    fun remove(game: GameEntry) {
+        prefs.edit().remove(key(game)).apply()
+    }
+
+    fun clear() {
+        prefs.edit().clear().apply()
+    }
+
     private fun key(game: GameEntry): String {
         val input = "${game.platform.name}|${game.fileName.lowercase()}"
         val digest = MessageDigest.getInstance("SHA-256").digest(input.toByteArray())
