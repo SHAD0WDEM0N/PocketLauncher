@@ -1038,7 +1038,10 @@ class MainViewModel(
 
     private fun scanPlatform(platform: Platform, folderUri: String) {
         viewModelScope.launch {
-            val games = romScanner.scan(platform, folderUri)
+            val scannedGames = romScanner.scan(platform, folderUri)
+            val games = scannedGames.map { game ->
+                scrapeCache.get(game)?.let { cached -> applyScrapedData(game, cached) } ?: game
+            }
 
             if (_uiState.value.screen != Screen.PLATFORM ||
                 _uiState.value.selectedPlatform != platform
@@ -1053,8 +1056,99 @@ class MainViewModel(
                     isScanning = false,
                 )
             }
+
+            if (platform == Platform.GBA) {
+                scrapeMissingGames(games)
+            }
         }
     }
+
+    private suspend fun scrapeMissingGames(games: List<GameEntry>) {
+        val apiKey = _uiState.value.scraperApiKey.trim()
+        if (apiKey.isBlank()) {
+            _uiState.update {
+                it.copy(scraperStatus = "ADD A THEGAMESDB API KEY IN ARTWORK & SCRAPING")
+            }
+            return
+        }
+
+        val missing = games
+            .filter { scrapeCache.get(it) == null }
+            .take(20)
+
+        if (missing.isEmpty()) {
+            _uiState.update {
+                it.copy(
+                    scraperRunning = false,
+                    scraperStatus = "ALL CURRENT GBA GAMES ARE CACHED",
+                )
+            }
+            return
+        }
+
+        _uiState.update {
+            it.copy(
+                scraperRunning = true,
+                scraperStatus = "0 / ${missing.size}",
+            )
+        }
+
+        var completed = 0
+        for ((index, game) in missing.withIndex()) {
+            if (_uiState.value.screen != Screen.PLATFORM ||
+                _uiState.value.selectedPlatform != Platform.GBA
+            ) {
+                break
+            }
+
+            val result = theGamesDbClient.scrape(game, apiKey)
+            val data = result.getOrNull()
+
+            if (data == null) {
+                val message = result.exceptionOrNull()?.message ?: "Unknown scraper error"
+                _uiState.update {
+                    it.copy(
+                        scraperRunning = false,
+                        scraperStatus = "SCRAPER ERROR  ·  $message",
+                    )
+                }
+                return
+            }
+
+            scrapeCache.put(game, data)
+            completed += 1
+
+            _uiState.update { state ->
+                val updatedGames = state.games.map { existing ->
+                    if (existing.uri == game.uri) applyScrapedData(existing, data) else existing
+                }
+                state.copy(
+                    games = updatedGames,
+                    scraperRunning = true,
+                    scraperStatus = "${index + 1} / ${missing.size}",
+                )
+            }
+        }
+
+        _uiState.update {
+            it.copy(
+                scraperRunning = false,
+                scraperStatus = if (completed == 1) "SCRAPED 1 NEW GAME" else "SCRAPED $completed NEW GAMES",
+            )
+        }
+    }
+
+    private fun applyScrapedData(game: GameEntry, data: ScrapedGameData): GameEntry =
+        game.copy(
+            displayName = data.title ?: game.displayName,
+            artworkUrl = data.artworkUrl,
+            developer = data.developer,
+            publisher = data.publisher,
+            releaseDate = data.releaseDate,
+            genre = data.genre,
+            rating = data.rating,
+            scrapeProvider = data.provider,
+        )
 
     private fun recordInputEvent(button: PocketButton, pressed: Boolean) {
         _uiState.update { state ->
