@@ -46,6 +46,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.example.pocketlauncher.R
 import com.example.pocketlauncher.library.GameEntry
@@ -307,12 +308,22 @@ private fun ArtworkCard(
 
     val maxHeight = 146.dp
     val maxWidth = 118.dp
-    val targetWidth = minOf(maxWidth, maxHeight * aspectRatio.coerceIn(0.58f, 0.95f))
+    val safeAspect = aspectRatio.coerceIn(0.58f, 0.95f)
+
+    val targetWidth: Dp
+    val targetHeight: Dp
+    if (maxHeight * safeAspect <= maxWidth) {
+        targetHeight = maxHeight
+        targetWidth = maxHeight * safeAspect
+    } else {
+        targetWidth = maxWidth
+        targetHeight = maxWidth / safeAspect
+    }
 
     Box(
         modifier = Modifier
             .width(targetWidth)
-            .height(maxHeight)
+            .height(targetHeight)
             .offset(y = if (selected) (-3).dp else 0.dp)
             .graphicsLayer {
                 scaleX = if (selected) 1.035f else 1f
