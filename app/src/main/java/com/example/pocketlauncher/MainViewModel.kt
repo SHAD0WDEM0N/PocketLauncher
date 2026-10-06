@@ -389,7 +389,7 @@ class MainViewModel(
         val state = _uiState.value
 
         return when (button) {
-            PocketButton.UP -> {
+            PocketButton.LEFT, PocketButton.UP -> {
                 if (state.games.isNotEmpty()) {
                     _uiState.update {
                         it.copy(gameIndex = (it.gameIndex - 1 + it.games.size) % it.games.size)
@@ -397,7 +397,7 @@ class MainViewModel(
                 }
                 true
             }
-            PocketButton.DOWN -> {
+            PocketButton.RIGHT, PocketButton.DOWN -> {
                 if (state.games.isNotEmpty()) {
                     _uiState.update {
                         it.copy(gameIndex = (it.gameIndex + 1) % it.games.size)
