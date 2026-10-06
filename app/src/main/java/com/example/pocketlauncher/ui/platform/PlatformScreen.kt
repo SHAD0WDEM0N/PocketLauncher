@@ -452,10 +452,10 @@ private fun PerspectiveArtwork(
             // Match the actual visible front insert of the rendered 2.5D case.
             // This is intentionally a trapezoid rather than a rotated rectangle.
             val dst = floatArrayOf(
-                29f * sx, 24f * sy,   // top-left
-                113f * sx, 18f * sy,  // top-right
-                114f * sx, 126f * sy, // bottom-right
-                30f * sx, 135f * sy,  // bottom-left
+                36f * sx, 31f * sy,   // top-left
+                103f * sx, 27f * sy,  // top-right
+                104f * sx, 118f * sy, // bottom-right
+                37f * sx, 124f * sy,  // bottom-left
             )
             // Normalize scraper covers onto a consistent portrait canvas first.
             // This preserves the original artwork proportions and avoids the tall/narrow stretch
