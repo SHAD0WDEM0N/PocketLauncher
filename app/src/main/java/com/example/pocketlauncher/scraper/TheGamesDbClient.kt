@@ -18,6 +18,7 @@ data class ScrapeCandidate(
     val artworkUrl: String?,
     val releaseDate: String?,
     val rating: String?,
+    val region: String?,
     val provider: String = "TheGamesDB",
 ) {
     fun toScrapedGameData(): ScrapedGameData = ScrapedGameData(
@@ -118,6 +119,8 @@ class TheGamesDbClient {
                         artworkUrl = artworkUrlFor(id, baseUrl, artworkData),
                         releaseDate = game.optString("release_date").takeIf { it.isNotBlank() },
                         rating = game.optString("rating").takeIf { it.isNotBlank() },
+                        region = game.optString("region").takeIf { it.isNotBlank() }
+                            ?: game.optString("region_id").takeIf { it.isNotBlank() },
                     )
                 )
             }
