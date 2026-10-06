@@ -1,5 +1,7 @@
 package com.example.pocketlauncher.ui.emulation
 
+import android.graphics.BitmapFactory
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -10,15 +12,19 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -38,6 +44,7 @@ fun EmulationScreen(
     menuHotkey: MenuHotkey,
     selectedStateSlot: Int,
     selectedStateSummary: String,
+    selectedStateThumbnailPath: String?,
     onScreenMenuIconEnabled: Boolean,
     onMenuIconClick: () -> Unit,
     onMenuItemClick: (Int) -> Unit,
@@ -138,6 +145,13 @@ fun EmulationScreen(
                     color = MaterialTheme.colorScheme.onBackground,
                 )
 
+                if (menuPage == EmulationMenuPage.MAIN) {
+                    StateThumbnailPreview(
+                        path = selectedStateThumbnailPath,
+                        slot = selectedStateSlot,
+                    )
+                }
+
                 items.forEachIndexed { index, label ->
                     val selected = index == menuIndex
 
@@ -214,6 +228,42 @@ fun EmulationScreen(
     }
 }
 
+@Composable
+private fun StateThumbnailPreview(
+    path: String?,
+    slot: Int,
+) {
+    val image = remember(path) {
+        path?.let { filePath ->
+            runCatching {
+                BitmapFactory.decodeFile(filePath)?.asImageBitmap()
+            }.getOrNull()
+        }
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(108.dp)
+            .background(Color.White.copy(alpha = 0.05f)),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (image != null) {
+            Image(
+                bitmap = image,
+                contentDescription = "Save state slot ${slot + 1} preview",
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Fit,
+            )
+        } else {
+            Text(
+                text = "SLOT ${slot + 1} · NO PREVIEW",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.42f),
+            )
+        }
+    }
+}
 private fun hotkeyLabel(hotkey: MenuHotkey): String = when (hotkey) {
     MenuHotkey.L3_R3 -> "L3 + R3"
     MenuHotkey.START_SELECT -> "START + SELECT"
