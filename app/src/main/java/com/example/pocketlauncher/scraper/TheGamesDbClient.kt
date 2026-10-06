@@ -66,8 +66,16 @@ class TheGamesDbClient {
 
             if (found.isEmpty()) error("No matches found for ${game.displayName}")
 
-            found.values
-                .sortedByDescending { scoreTitle(scrapeTitle, it.title) }
+            val ranked = found.values
+                .map { candidate -> candidate to scoreTitle(scrapeTitle, candidate.title) }
+                .sortedByDescending { it.second }
+
+            val bestScore = ranked.firstOrNull()?.second ?: Double.NEGATIVE_INFINITY
+            ranked
+                .filter { (_, score) ->
+                    score >= 8.0 && (bestScore < 20.0 || score >= bestScore - 10.0)
+                }
+                .map { it.first }
                 .take(limit)
         }
     }
@@ -213,16 +221,37 @@ class TheGamesDbClient {
     private fun scoreTitle(query: String, candidate: String): Double {
         val normalizedQuery = normalizeTitle(query)
         val normalizedCandidate = normalizeTitle(candidate)
-        val queryTokens = normalizedQuery.split(' ').filter { it.isNotBlank() }.toSet()
-        val candidateTokens = normalizedCandidate.split(' ').filter { it.isNotBlank() }.toSet()
-        val exactBonus = if (normalizedCandidate == normalizedQuery) 100.0 else 0.0
-        val overlap = if (queryTokens.isEmpty()) 0.0 else {
-            queryTokens.intersect(candidateTokens).size.toDouble() / queryTokens.size.toDouble()
-        }
-        val extraPenalty = (candidateTokens - queryTokens).size * 1.25
-        return exactBonus + overlap * 30.0 - extraPenalty
-    }
+        val queryTokens = normalizedQuery.split(' ').filter { it.isNotBlank() }
+        val candidateTokens = normalizedCandidate.split(' ').filter { it.isNotBlank() }
+        val querySet = queryTokens.toSet()
+        val candidateSet = candidateTokens.toSet()
 
+        val exactBonus = if (normalizedCandidate == normalizedQuery) 120.0 else 0.0
+        val overlapCount = querySet.intersect(candidateSet).size
+        val overlap = if (querySet.isEmpty()) 0.0 else overlapCount.toDouble() / querySet.size.toDouble()
+        val reverseOverlap = if (candidateSet.isEmpty()) 0.0 else overlapCount.toDouble() / candidateSet.size.toDouble()
+
+        val queryBigrams = queryTokens.zipWithNext { a, b -> "$a $b" }.toSet()
+        val candidateBigrams = candidateTokens.zipWithNext { a, b -> "$a $b" }.toSet()
+        val bigramOverlap = queryBigrams.intersect(candidateBigrams).size
+
+        val importantTokens = querySet.filter { it.length >= 5 && it !in setOf("legend", "zelda", "game", "version") }.toSet()
+        val importantMatches = importantTokens.intersect(candidateSet).size
+        val importantMisses = (importantTokens - candidateSet).size
+
+        val extraPenalty = (candidateSet - querySet).size * 1.5
+        val importantPenalty = importantMisses * 5.0
+        val importantBonus = importantMatches * 6.0
+        val bigramBonus = bigramOverlap * 4.0
+
+        return exactBonus +
+            overlap * 35.0 +
+            reverseOverlap * 20.0 +
+            importantBonus +
+            bigramBonus -
+            extraPenalty -
+            importantPenalty
+    }
     private fun normalizeTitle(value: String): String =
         stripDiacritics(value)
             .lowercase()
