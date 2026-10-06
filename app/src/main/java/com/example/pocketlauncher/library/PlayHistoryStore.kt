@@ -36,6 +36,10 @@ class PlayHistoryStore(context: Context) {
         return updated
     }
 
+    fun clear(game: GameEntry) {
+        prefs.edit().remove(key(game)).apply()
+    }
+
     private fun key(game: GameEntry): String {
         val input = "${game.platform.name}|${game.fileName.lowercase()}"
         val digest = MessageDigest.getInstance("SHA-256").digest(input.toByteArray())
