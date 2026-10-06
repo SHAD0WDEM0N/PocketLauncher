@@ -98,10 +98,10 @@ fun MainNavigation(
             running = uiState.scraperRunning,
             selectedIndex = uiState.menuIndex,
             onApiKeyChanged = viewModel::setTheGamesDbApiKey,
-            onScrapeNewMissing = { viewModel.scrapeGbaLibrary(ScrapeMode.MISSING) },
-            onScrapeMissingArtwork = { viewModel.scrapeGbaLibrary(ScrapeMode.MISSING_ARTWORK) },
-            onScrapeMissingMetadata = { viewModel.scrapeGbaLibrary(ScrapeMode.MISSING_METADATA) },
-            onRescrapeAll = { viewModel.scrapeGbaLibrary(ScrapeMode.RESCRAPE_ALL) },
+            onScrapeNewMissing = { viewModel.scrapeHandheldLibraries(ScrapeMode.MISSING) },
+            onScrapeMissingArtwork = { viewModel.scrapeHandheldLibraries(ScrapeMode.MISSING_ARTWORK) },
+            onScrapeMissingMetadata = { viewModel.scrapeHandheldLibraries(ScrapeMode.MISSING_METADATA) },
+            onRescrapeAll = { viewModel.scrapeHandheldLibraries(ScrapeMode.RESCRAPE_ALL) },
         )
 
         Screen.EMULATOR_SETTINGS -> EmulatorSettingsScreen(
