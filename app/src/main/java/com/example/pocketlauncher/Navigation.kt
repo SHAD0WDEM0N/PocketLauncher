@@ -127,6 +127,7 @@ fun MainNavigation(
             menuStatus = uiState.emulationMenuStatus,
             scaleMode = uiState.videoScaleMode,
             filterMode = uiState.videoFilterMode,
+            effectMode = uiState.videoEffectMode,
             menuHotkey = uiState.menuHotkey,
             selectedStateSlot = uiState.selectedStateSlot,
             selectedStateSummary = uiState.selectedStateSummary,
