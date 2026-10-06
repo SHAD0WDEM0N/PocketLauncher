@@ -140,6 +140,7 @@ class MainViewModel(
     private var activeRomPath: String? = null
     private var activeGame: GameEntry? = null
     private var activeSessionStartedElapsedMs: Long = 0L
+    private var activeReturnScreen: Screen = Screen.PLATFORM
 
     private val _uiState = MutableStateFlow(
         PocketUiState(
@@ -1067,6 +1068,7 @@ class MainViewModel(
 
     private fun startGame(game: GameEntry) {
         if (_uiState.value.screen == Screen.EMULATION) return
+        activeReturnScreen = _uiState.value.screen
 
         _uiState.update {
             it.copy(
@@ -1217,7 +1219,7 @@ class MainViewModel(
         romRuntimeStager.clear()
         _uiState.update {
             it.copy(
-                screen = Screen.PLATFORM,
+                screen = activeReturnScreen,
                 emulationStatus = "",
                 emulationFrame = IntArray(0),
                 emulationWidth = 0,
