@@ -141,7 +141,9 @@ class NativeFrameView(context: Context) : View(context), Choreographer.FrameCall
         )
         val borderActive =
             borderMode == VideoBorderMode.AUTO &&
-                platformKey.equals("GBA", ignoreCase = true) &&
+                (platformKey.equals("GB", ignoreCase = true) ||
+                    platformKey.equals("GBC", ignoreCase = true) ||
+                    platformKey.equals("GBA", ignoreCase = true)) &&
                 scaleMode != VideoScaleMode.STRETCH
 
         val dst = if (scaleMode == VideoScaleMode.STRETCH) {
@@ -177,7 +179,7 @@ class NativeFrameView(context: Context) : View(context), Choreographer.FrameCall
         }
 
         if (borderActive) {
-            drawGbaAutoBorder(canvas, dst, current.width.toFloat() / current.height.toFloat())
+            drawSystemAutoBorder(canvas, dst, current.width.toFloat() / current.height.toFloat())
         }
 
         canvas.drawBitmap(current, src, dst, paint)
@@ -195,6 +197,97 @@ class NativeFrameView(context: Context) : View(context), Choreographer.FrameCall
             38f,
             debugPaint,
         )
+    }
+
+    private fun drawSystemAutoBorder(canvas: Canvas, dst: Rect, gameAspect: Float) {
+        when (platformKey.uppercase()) {
+            "GB" -> drawGbAutoBorder(canvas, dst)
+            "GBC" -> drawGbcAutoBorder(canvas, dst)
+            else -> drawGbaAutoBorder(canvas, dst, gameAspect)
+        }
+    }
+
+    private fun drawGbAutoBorder(canvas: Canvas, dst: Rect) {
+        canvas.drawColor(android.graphics.Color.rgb(24, 25, 22))
+        drawClassicHandheldSidePanels(
+            canvas = canvas,
+            dst = dst,
+            light = android.graphics.Color.rgb(190, 190, 174),
+            mid = android.graphics.Color.rgb(132, 132, 120),
+            dark = android.graphics.Color.rgb(72, 72, 66),
+            label = "GAME BOY",
+            accent = android.graphics.Color.rgb(184, 30, 92),
+        )
+    }
+
+    private fun drawGbcAutoBorder(canvas: Canvas, dst: Rect) {
+        canvas.drawColor(android.graphics.Color.rgb(18, 14, 28))
+        drawClassicHandheldSidePanels(
+            canvas = canvas,
+            dst = dst,
+            light = android.graphics.Color.rgb(116, 82, 190),
+            mid = android.graphics.Color.rgb(74, 48, 132),
+            dark = android.graphics.Color.rgb(34, 24, 66),
+            label = "GAME BOY COLOR",
+            accent = android.graphics.Color.rgb(235, 73, 92),
+        )
+    }
+
+    private fun drawClassicHandheldSidePanels(
+        canvas: Canvas,
+        dst: Rect,
+        light: Int,
+        mid: Int,
+        dark: Int,
+        label: String,
+        accent: Int,
+    ) {
+        val leftWidth = dst.left.coerceAtLeast(0)
+        val rightStart = dst.right.coerceAtMost(width)
+        val rightWidth = (width - rightStart).coerceAtLeast(0)
+
+        if (leftWidth > 0) {
+            borderPaint.shader = LinearGradient(
+                0f, 0f, leftWidth.toFloat(), 0f,
+                dark, light, Shader.TileMode.CLAMP
+            )
+            canvas.drawRect(0f, 0f, leftWidth.toFloat(), height.toFloat(), borderPaint)
+            borderPaint.shader = null
+            borderPaint.color = mid
+            canvas.drawRect(leftWidth - 3f, 0f, leftWidth.toFloat(), height.toFloat(), borderPaint)
+
+            borderTextPaint.color = android.graphics.Color.rgb(24, 24, 26)
+            borderTextPaint.textSize = (leftWidth * 0.11f).coerceIn(16f, 30f)
+            canvas.drawText(label, leftWidth * 0.5f, height * 0.36f, borderTextPaint)
+
+            borderPaint.color = accent
+            canvas.drawCircle(
+                leftWidth * 0.50f,
+                height * 0.20f,
+                (leftWidth * 0.035f).coerceIn(4f, 8f),
+                borderPaint,
+            )
+        }
+
+        if (rightWidth > 0) {
+            borderPaint.shader = LinearGradient(
+                rightStart.toFloat(), 0f, width.toFloat(), 0f,
+                light, dark, Shader.TileMode.CLAMP
+            )
+            canvas.drawRect(rightStart.toFloat(), 0f, width.toFloat(), height.toFloat(), borderPaint)
+            borderPaint.shader = null
+            borderPaint.color = mid
+            canvas.drawRect(rightStart.toFloat(), 0f, rightStart + 3f, height.toFloat(), borderPaint)
+
+            drawSpeakerDots(
+                canvas,
+                rightStart + rightWidth * 0.50f,
+                height * 0.72f,
+                rightWidth * 0.032f,
+            )
+        }
+
+        borderTextPaint.color = android.graphics.Color.rgb(38, 40, 46)
     }
 
     private fun drawGbaAutoBorder(canvas: Canvas, dst: Rect, gameAspect: Float) {
