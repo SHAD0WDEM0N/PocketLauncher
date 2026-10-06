@@ -25,6 +25,7 @@ import com.example.pocketlauncher.library.SystemLibraryStore
 import com.example.pocketlauncher.scraper.ScrapeCache
 import com.example.pocketlauncher.scraper.ScrapedGameData
 import com.example.pocketlauncher.scraper.ScraperPreferencesStore
+import com.example.pocketlauncher.scraper.ScrapeCandidate
 import com.example.pocketlauncher.scraper.TheGamesDbClient
 import com.example.pocketlauncher.ui.input.ButtonEvent
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -52,6 +53,8 @@ enum class ScrapeMode {
 enum class Screen {
     HOME,
     PLATFORM,
+    GAME_OPTIONS,
+    SCRAPE_MATCHES,
     SETTINGS,
     FRONT_END_SETTINGS,
     SCRAPER_SETTINGS,
@@ -84,6 +87,11 @@ data class PocketUiState(
     val scraperApiKey: String = "",
     val scraperStatus: String = "",
     val scraperRunning: Boolean = false,
+    val gameOptionsUri: String? = null,
+    val scrapeCandidates: List<ScrapeCandidate> = emptyList(),
+    val scrapeCandidateIndex: Int = 0,
+    val matchSearchStatus: String = "",
+    val matchSearchRunning: Boolean = false,
 
     val coreInstalled: Boolean = false,
     val coreDownloading: Boolean = false,
@@ -163,6 +171,8 @@ class MainViewModel(
         return when (_uiState.value.screen) {
             Screen.HOME -> handleHomeInput(button)
             Screen.PLATFORM -> handlePlatformInput(button)
+            Screen.GAME_OPTIONS -> handleGameOptionsInput(button)
+            Screen.SCRAPE_MATCHES -> handleScrapeMatchesInput(button)
             Screen.SETTINGS -> handleSettingsInput(button)
             Screen.FRONT_END_SETTINGS -> handleFrontEndSettingsInput(button)
             Screen.SCRAPER_SETTINGS -> handleScraperSettingsInput(button)
@@ -474,7 +484,21 @@ class MainViewModel(
                 true
             }
             PocketButton.X -> {
-                requestFolderPicker()
+                val game = state.games.getOrNull(state.gameIndex)
+                if (game != null) {
+                    _uiState.update {
+                        it.copy(
+                            screen = Screen.GAME_OPTIONS,
+                            menuIndex = 0,
+                            gameOptionsUri = game.uri,
+                            matchSearchStatus = "",
+                            scrapeCandidates = emptyList(),
+                            scrapeCandidateIndex = 0,
+                        )
+                    }
+                } else {
+                    requestFolderPicker()
+                }
                 true
             }
             PocketButton.Y -> {
@@ -501,6 +525,189 @@ class MainViewModel(
         }
     }
 
+    private fun selectedOptionsGame(): GameEntry? {
+        val uri = _uiState.value.gameOptionsUri ?: return null
+        return _uiState.value.games.firstOrNull { it.uri == uri }
+    }
+
+    private fun handleGameOptionsInput(button: PocketButton): Boolean {
+        if (moveMenu(button, 4)) return true
+
+        return when (button) {
+            PocketButton.A -> {
+                when (_uiState.value.menuIndex) {
+                    0 -> findMatchesForSelectedGame()
+                    1 -> rescrapeSelectedGame()
+                    2 -> clearSelectedGameScrape()
+                    3 -> requestFolderPicker()
+                }
+                true
+            }
+            PocketButton.B -> {
+                _uiState.update { it.copy(screen = Screen.PLATFORM, menuIndex = 0) }
+                true
+            }
+            else -> false
+        }
+    }
+
+    private fun handleScrapeMatchesInput(button: PocketButton): Boolean {
+        val state = _uiState.value
+        val size = state.scrapeCandidates.size
+
+        return when (button) {
+            PocketButton.LEFT, PocketButton.UP -> {
+                if (size > 0) {
+                    _uiState.update {
+                        it.copy(scrapeCandidateIndex = (it.scrapeCandidateIndex - 1 + size) % size)
+                    }
+                }
+                true
+            }
+            PocketButton.RIGHT, PocketButton.DOWN -> {
+                if (size > 0) {
+                    _uiState.update {
+                        it.copy(scrapeCandidateIndex = (it.scrapeCandidateIndex + 1) % size)
+                    }
+                }
+                true
+            }
+            PocketButton.A -> {
+                applySelectedScrapeCandidate()
+                true
+            }
+            PocketButton.B -> {
+                _uiState.update {
+                    it.copy(
+                        screen = Screen.GAME_OPTIONS,
+                        scrapeCandidates = emptyList(),
+                        scrapeCandidateIndex = 0,
+                        matchSearchStatus = "",
+                        matchSearchRunning = false,
+                    )
+                }
+                true
+            }
+            else -> false
+        }
+    }
+
+    private fun findMatchesForSelectedGame() {
+        val game = selectedOptionsGame() ?: return
+        val apiKey = _uiState.value.scraperApiKey.trim()
+        if (apiKey.isBlank()) {
+            _uiState.update { it.copy(matchSearchStatus = "ADD A THEGAMESDB API KEY FIRST") }
+            return
+        }
+
+        _uiState.update {
+            it.copy(
+                screen = Screen.SCRAPE_MATCHES,
+                scrapeCandidates = emptyList(),
+                scrapeCandidateIndex = 0,
+                matchSearchStatus = "SEARCHING THEGAMESDB...",
+                matchSearchRunning = true,
+            )
+        }
+
+        viewModelScope.launch {
+            val result = theGamesDbClient.searchCandidates(game, apiKey)
+            result.onSuccess { candidates ->
+                _uiState.update {
+                    it.copy(
+                        scrapeCandidates = candidates,
+                        scrapeCandidateIndex = 0,
+                        matchSearchStatus = if (candidates.isEmpty()) "NO MATCHES FOUND" else "${candidates.size} MATCHES FOUND",
+                        matchSearchRunning = false,
+                    )
+                }
+            }.onFailure { error ->
+                _uiState.update {
+                    it.copy(
+                        matchSearchStatus = "SEARCH FAILED  ·  ${error.message ?: "Unknown error"}",
+                        matchSearchRunning = false,
+                    )
+                }
+            }
+        }
+    }
+
+    private fun applySelectedScrapeCandidate() {
+        val game = selectedOptionsGame() ?: return
+        val candidate = _uiState.value.scrapeCandidates.getOrNull(_uiState.value.scrapeCandidateIndex) ?: return
+        val data = candidate.toScrapedGameData()
+        scrapeCache.put(game, data)
+
+        _uiState.update { state ->
+            val updatedGames = state.games.map { existing ->
+                if (existing.uri == game.uri) applyScrapedData(existing, data) else existing
+            }
+            state.copy(
+                screen = Screen.PLATFORM,
+                games = updatedGames,
+                scrapeCandidates = emptyList(),
+                scrapeCandidateIndex = 0,
+                matchSearchStatus = "",
+                matchSearchRunning = false,
+            )
+        }
+    }
+
+    private fun rescrapeSelectedGame() {
+        val game = selectedOptionsGame() ?: return
+        val apiKey = _uiState.value.scraperApiKey.trim()
+        if (apiKey.isBlank()) {
+            _uiState.update { it.copy(matchSearchStatus = "ADD A THEGAMESDB API KEY FIRST") }
+            return
+        }
+
+        _uiState.update { it.copy(matchSearchStatus = "RESCRAPING ${game.displayName}...", matchSearchRunning = true) }
+        viewModelScope.launch {
+            val result = theGamesDbClient.scrape(game, apiKey)
+            val data = result.getOrNull()
+            if (data != null) {
+                scrapeCache.put(game, data)
+                _uiState.update { state ->
+                    state.copy(
+                        games = state.games.map { existing ->
+                            if (existing.uri == game.uri) applyScrapedData(existing, data) else existing
+                        },
+                        matchSearchStatus = "UPDATED ${game.displayName}",
+                        matchSearchRunning = false,
+                    )
+                }
+            } else {
+                _uiState.update {
+                    it.copy(
+                        matchSearchStatus = "RESCRAPE FAILED  ·  ${result.exceptionOrNull()?.message ?: "Unknown error"}",
+                        matchSearchRunning = false,
+                    )
+                }
+            }
+        }
+    }
+
+    private fun clearSelectedGameScrape() {
+        val game = selectedOptionsGame() ?: return
+        scrapeCache.remove(game)
+        _uiState.update { state ->
+            val cleared = state.games.map { existing ->
+                if (existing.uri == game.uri) {
+                    existing.copy(
+                        displayName = com.example.pocketlauncher.library.RomNameCleaner.clean(existing.fileName),
+                        artworkUrl = null,
+                        developer = null,
+                        publisher = null,
+                        releaseDate = null,
+                        genre = null,
+                        rating = null,
+                        scrapeProvider = null,
+                    )
+                } else existing
+            }
+            state.copy(games = cleared, matchSearchStatus = "SCRAPED DATA CLEARED")
+        }
+    }
     private fun handleEmulationInput(button: PocketButton, pressed: Boolean): Boolean {
         if (pressed) {
             emulationHeldButtons += button
