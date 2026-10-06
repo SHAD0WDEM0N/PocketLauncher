@@ -9,6 +9,7 @@ import android.os.SystemClock
 import android.view.Choreographer
 import android.view.View
 import com.example.pocketlauncher.engine.PocketEngine
+import com.example.pocketlauncher.engine.VideoEffectMode
 import com.example.pocketlauncher.engine.VideoFilterMode
 import com.example.pocketlauncher.engine.VideoScaleMode
 
@@ -27,12 +28,25 @@ class NativeFrameView(context: Context) : View(context), Choreographer.FrameCall
             paint.isAntiAlias = value == VideoFilterMode.SMOOTH
             invalidate()
         }
+
+    var effectMode: VideoEffectMode = VideoEffectMode.OFF
+        set(value) {
+            if (field != value) {
+                field = value
+                overlayBitmap?.recycle()
+                overlayBitmap = null
+                overlayKey = null
+                invalidate()
+            }
+        }
     private val debugPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = android.graphics.Color.WHITE
         textSize = 28f
         setShadowLayer(4f, 1f, 1f, android.graphics.Color.BLACK)
     }
     private var bitmap: Bitmap? = null
+    private var overlayBitmap: Bitmap? = null
+    private var overlayKey: String? = null
     private var lastFrameCount = -1L
     private var running = true
 
@@ -113,6 +127,13 @@ class NativeFrameView(context: Context) : View(context), Choreographer.FrameCall
 
         canvas.drawBitmap(current, src, dst, paint)
 
+        if (effectMode != VideoEffectMode.OFF) {
+            val overlay = overlayFor(dst, current.width, current.height)
+            if (overlay != null) {
+                canvas.drawBitmap(overlay, dst.left.toFloat(), dst.top.toFloat(), null)
+            }
+        }
+
         canvas.drawText(
             "CORE %.1f  DISPLAY %.1f".format(coreFps, displayFps),
             20f,
@@ -121,11 +142,79 @@ class NativeFrameView(context: Context) : View(context), Choreographer.FrameCall
         )
     }
 
+    private fun overlayFor(dst: Rect, sourceWidth: Int, sourceHeight: Int): Bitmap? {
+        if (dst.width() <= 0 || dst.height() <= 0 || sourceWidth <= 0 || sourceHeight <= 0) return null
+
+        val key = "${effectMode.name}:${dst.width()}x${dst.height()}:${sourceWidth}x${sourceHeight}"
+        if (overlayBitmap != null && overlayKey == key) return overlayBitmap
+
+        overlayBitmap?.recycle()
+        val overlay = Bitmap.createBitmap(dst.width(), dst.height(), Bitmap.Config.ARGB_8888)
+        val c = Canvas(overlay)
+        val p = Paint().apply {
+            isAntiAlias = false
+            style = Paint.Style.FILL
+        }
+
+        val pixelW = dst.width().toFloat() / sourceWidth.toFloat()
+        val pixelH = dst.height().toFloat() / sourceHeight.toFloat()
+
+        when (effectMode) {
+            VideoEffectMode.OFF -> Unit
+
+            VideoEffectMode.SCANLINES -> {
+                p.color = android.graphics.Color.argb(58, 0, 0, 0)
+                val thickness = maxOf(1f, pixelH * 0.28f)
+                for (row in 0 until sourceHeight) {
+                    val y = (row + 1) * pixelH - thickness
+                    c.drawRect(0f, y, dst.width().toFloat(), y + thickness, p)
+                }
+            }
+
+            VideoEffectMode.LCD_GRID -> {
+                p.color = android.graphics.Color.argb(38, 0, 0, 0)
+                val hThickness = maxOf(1f, pixelH * 0.16f)
+                val vThickness = maxOf(1f, pixelW * 0.16f)
+
+                for (row in 1 until sourceHeight) {
+                    val y = row * pixelH - hThickness / 2f
+                    c.drawRect(0f, y, dst.width().toFloat(), y + hThickness, p)
+                }
+                for (col in 1 until sourceWidth) {
+                    val x = col * pixelW - vThickness / 2f
+                    c.drawRect(x, 0f, x + vThickness, dst.height().toFloat(), p)
+                }
+            }
+
+            VideoEffectMode.PIXEL_GRID -> {
+                p.color = android.graphics.Color.argb(54, 0, 0, 0)
+                val hThickness = maxOf(1f, pixelH * 0.22f)
+                val vThickness = maxOf(1f, pixelW * 0.22f)
+
+                for (row in 1 until sourceHeight) {
+                    val y = row * pixelH - hThickness / 2f
+                    c.drawRect(0f, y, dst.width().toFloat(), y + hThickness, p)
+                }
+                for (col in 1 until sourceWidth) {
+                    val x = col * pixelW - vThickness / 2f
+                    c.drawRect(x, 0f, x + vThickness, dst.height().toFloat(), p)
+                }
+            }
+        }
+
+        overlayBitmap = overlay
+        overlayKey = key
+        return overlay
+    }
+
     override fun onDetachedFromWindow() {
         running = false
         Choreographer.getInstance().removeFrameCallback(this)
         bitmap?.recycle()
         bitmap = null
+        overlayBitmap?.recycle()
+        overlayBitmap = null
+        overlayKey = null
         super.onDetachedFromWindow()
     }
 }
