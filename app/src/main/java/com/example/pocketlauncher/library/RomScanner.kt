@@ -23,7 +23,7 @@ class RomScanner(
                             ?.substringAfterLast('.', missingDelimiterValue = "")
                             ?.lowercase()
                             .orEmpty()
-                        extension in platform.extensions
+                        extension in platform.extensions || extension == "zip"
                     }
                     .mapNotNull { file ->
                         val fileName = file.name ?: return@mapNotNull null
