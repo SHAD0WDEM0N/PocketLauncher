@@ -163,9 +163,9 @@ class MainViewModel(
             } else {
                 "mGBA not installed"
             },
-            videoScaleMode = emulationPreferences.scaleMode(),
-            videoFilterMode = emulationPreferences.filterMode(),
-            videoEffectMode = emulationPreferences.effectMode(),
+            videoScaleMode = emulationPreferences.scaleMode(Platform.GBA.name),
+            videoFilterMode = emulationPreferences.filterMode(Platform.GBA.name),
+            videoEffectMode = emulationPreferences.effectMode(Platform.GBA.name),
             menuHotkey = emulationPreferences.menuHotkey(),
             onScreenMenuIconEnabled = emulationPreferences.onScreenMenuIconEnabled(),
             hasFavourites = favouriteStore.hasAnyFavourites(),
@@ -551,7 +551,7 @@ class MainViewModel(
                     requestFolderPicker()
                 } else {
                     val game = state.games.getOrNull(state.gameIndex)
-                    if (game != null && game.platform == Platform.GBA) {
+                    if (game != null) {
                         startGame(game)
                     }
                 }
@@ -967,7 +967,7 @@ class MainViewModel(
                         VideoScaleMode.INTEGER -> VideoScaleMode.STRETCH
                         VideoScaleMode.STRETCH -> VideoScaleMode.FIT
                     }
-                    emulationPreferences.setScaleMode(next)
+                    emulationPreferences.setScaleMode(state.emulationPlatformKey, next)
                     _uiState.update { it.copy(videoScaleMode = next) }
                 }
                 1 -> {
@@ -976,7 +976,7 @@ class MainViewModel(
                     } else {
                         VideoFilterMode.SHARP
                     }
-                    emulationPreferences.setFilterMode(next)
+                    emulationPreferences.setFilterMode(state.emulationPlatformKey, next)
                     _uiState.update { it.copy(videoFilterMode = next) }
                 }
                 2 -> {
@@ -986,7 +986,7 @@ class MainViewModel(
                         VideoEffectMode.LCD_GRID -> VideoEffectMode.PIXEL_GRID
                         VideoEffectMode.PIXEL_GRID -> VideoEffectMode.OFF
                     }
-                    emulationPreferences.setEffectMode(next)
+                    emulationPreferences.setEffectMode(state.emulationPlatformKey, next)
                     _uiState.update {
                         it.copy(
                             videoEffectMode = next,
@@ -1212,6 +1212,9 @@ class MainViewModel(
                     selectedStateSlot = 0,
                     selectedStateSummary = saveStateManager.slotSummary(game, 0),
                     selectedStateThumbnailPath = saveStateManager.thumbnailPath(game, 0),
+                    videoScaleMode = emulationPreferences.scaleMode(game.platform.name),
+                    videoFilterMode = emulationPreferences.filterMode(game.platform.name),
+                    videoEffectMode = emulationPreferences.effectMode(game.platform.name),
                     videoBorderMode = emulationPreferences.borderMode(game.platform.name),
                     emulationPlatformKey = game.platform.name,
                 )
