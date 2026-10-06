@@ -539,7 +539,10 @@ class MainViewModel(
                     0 -> findMatchesForSelectedGame()
                     1 -> rescrapeSelectedGame()
                     2 -> clearSelectedGameScrape()
-                    3 -> requestFolderPicker()
+                    3 -> {
+                        _uiState.update { it.copy(screen = Screen.PLATFORM, menuIndex = 0) }
+                        requestFolderPicker()
+                    }
                 }
                 true
             }
