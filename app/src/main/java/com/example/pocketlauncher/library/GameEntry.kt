@@ -20,4 +20,5 @@ data class GameEntry(
     val scrapeProvider: String? = null,
     val lastPlayedEpochMs: Long = 0L,
     val playtimeSeconds: Long = 0L,
+    val isFavourite: Boolean = false,
 )
