@@ -195,7 +195,7 @@ class TheGamesDbClient {
 
     private fun normalizeTitle(value: String): String =
         Normalizer.normalize(value, Normalizer.Form.NFD)
-            .replace(Regex("\\p{M}+"), "")
+            .replace(Regex("""\p{M}+"""), "")
             .lowercase()
             .replace("&", " and ")
             .replace("/", " and ")
