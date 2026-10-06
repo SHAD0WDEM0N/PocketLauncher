@@ -22,6 +22,10 @@ import com.example.pocketlauncher.library.Platform
 import com.example.pocketlauncher.library.RomFolderStore
 import com.example.pocketlauncher.library.RomScanner
 import com.example.pocketlauncher.library.SystemLibraryStore
+import com.example.pocketlauncher.scraper.ScrapeCache
+import com.example.pocketlauncher.scraper.ScrapedGameData
+import com.example.pocketlauncher.scraper.ScraperPreferencesStore
+import com.example.pocketlauncher.scraper.TheGamesDbClient
 import com.example.pocketlauncher.ui.input.ButtonEvent
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -43,6 +47,7 @@ enum class Screen {
     PLATFORM,
     SETTINGS,
     FRONT_END_SETTINGS,
+    SCRAPER_SETTINGS,
     EMULATOR_SETTINGS,
     SYSTEM_MANAGER,
     CORE_DOWNLOADS,
@@ -68,6 +73,10 @@ data class PocketUiState(
 
     val folderPickerRequested: Boolean = false,
     val systemSettingsRequested: Boolean = false,
+
+    val scraperApiKey: String = "",
+    val scraperStatus: String = "",
+    val scraperRunning: Boolean = false,
 
     val coreInstalled: Boolean = false,
     val coreDownloading: Boolean = false,
@@ -97,6 +106,9 @@ class MainViewModel(
     private val folderStore = RomFolderStore(application)
     private val romScanner = RomScanner(application)
     private val systemStore = SystemLibraryStore(application)
+    private val scraperPreferences = ScraperPreferencesStore(application)
+    private val scrapeCache = ScrapeCache(application)
+    private val theGamesDbClient = TheGamesDbClient()
     private val coreDownloadManager = CoreDownloadManager(application)
     private val romRuntimeStager = RomRuntimeStager(application)
     private val engineAudioPlayer = EngineAudioPlayer()
@@ -113,6 +125,7 @@ class MainViewModel(
         PocketUiState(
             engineReady = PocketEngine.getStatus()?.equals("READY", ignoreCase = true) == true,
             enabledPlatforms = systemStore.getEnabledPlatforms(),
+            scraperApiKey = scraperPreferences.theGamesDbApiKey(),
             coreInstalled = coreDownloadManager.installedCorePath() != null,
             coreStatus = if (coreDownloadManager.installedCorePath() != null) {
                 "mGBA installed"
@@ -145,6 +158,7 @@ class MainViewModel(
             Screen.PLATFORM -> handlePlatformInput(button)
             Screen.SETTINGS -> handleSettingsInput(button)
             Screen.FRONT_END_SETTINGS -> handleFrontEndSettingsInput(button)
+            Screen.SCRAPER_SETTINGS -> handleScraperSettingsInput(button)
             Screen.EMULATOR_SETTINGS -> handleEmulatorSettingsInput(button)
             Screen.SYSTEM_MANAGER -> handleSystemManagerInput(button)
             Screen.CORE_DOWNLOADS -> handleCoreDownloadsInput(button)
@@ -250,8 +264,11 @@ class MainViewModel(
 
         return when (button) {
             PocketButton.A -> {
-                if (_uiState.value.menuIndex == 2) {
-                    _uiState.update {
+                when (_uiState.value.menuIndex) {
+                    1 -> _uiState.update {
+                        it.copy(screen = Screen.SCRAPER_SETTINGS, menuIndex = 0)
+                    }
+                    2 -> _uiState.update {
                         it.copy(screen = Screen.INPUT_TEST, menuIndex = 0)
                     }
                 }
@@ -262,6 +279,28 @@ class MainViewModel(
                 true
             }
             else -> false
+        }
+    }
+
+    private fun handleScraperSettingsInput(button: PocketButton): Boolean {
+        return when (button) {
+            PocketButton.B -> {
+                _uiState.update {
+                    it.copy(screen = Screen.FRONT_END_SETTINGS, menuIndex = 1)
+                }
+                true
+            }
+            else -> true
+        }
+    }
+
+    fun setTheGamesDbApiKey(value: String) {
+        scraperPreferences.setTheGamesDbApiKey(value)
+        _uiState.update {
+            it.copy(
+                scraperApiKey = value,
+                scraperStatus = if (value.isBlank()) "API KEY CLEARED" else "API KEY SAVED",
+            )
         }
     }
 
