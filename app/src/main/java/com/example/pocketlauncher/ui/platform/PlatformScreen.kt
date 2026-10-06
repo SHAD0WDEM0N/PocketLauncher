@@ -2,6 +2,7 @@ package com.example.pocketlauncher.ui.platform
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.util.Base64
 import android.util.LruCache
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
@@ -16,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -39,10 +41,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.example.pocketlauncher.R
 import com.example.pocketlauncher.library.GameEntry
 import com.example.pocketlauncher.library.Platform
 import com.example.pocketlauncher.theme.PocketWhiteMuted
@@ -265,12 +269,6 @@ private fun CartridgeCard(
     val outerBackground = if (selected) Color(0xFFEDEAE3) else Color(0xFF181818)
     val outerBorder = if (selected) Color.White else Color(0xFF2A2A2A)
 
-    val frameColor = when (platform) {
-        Platform.GB -> if (selected) Color(0xFFBDBAB2) else Color(0xFF76736D)
-        Platform.GBC -> if (selected) Color(0xFF9FB0BA) else Color(0xFF52636D)
-        Platform.GBA -> if (selected) Color(0xFF77759A) else Color(0xFF44425F)
-    }
-
     Box(
         modifier = Modifier
             .width(170.dp)
@@ -280,28 +278,33 @@ private fun CartridgeCard(
         contentAlignment = Alignment.Center,
     ) {
         Box(
-            modifier = Modifier
-                .width(104.dp)
-                .height(142.dp)
-                .background(frameColor)
-                .border(
-                    width = if (selected) 2.dp else 1.dp,
-                    color = if (selected) Color(0xFFF7F5F0) else Color.Black.copy(alpha = 0.35f),
-                )
-                .padding(5.dp),
+            modifier = Modifier.size(width = 126.dp, height = 148.dp),
             contentAlignment = Alignment.Center,
         ) {
+            GameCaseTemplate(
+                modifier = Modifier.fillMaxSize(),
+            )
+
             if (game.artworkUrl != null) {
                 RemoteArtwork(
                     url = game.artworkUrl,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Fit,
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .offset(x = 8.dp, y = (-2).dp)
+                        .width(84.dp)
+                        .height(108.dp)
+                        .clip(RoundedCornerShape(4.dp)),
+                    contentScale = ContentScale.Crop,
                 )
             } else {
                 Box(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color(0xFF101010)),
+                        .align(Alignment.Center)
+                        .offset(x = 8.dp, y = (-2).dp)
+                        .width(84.dp)
+                        .height(108.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(Color(0xFF151515)),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
@@ -316,6 +319,30 @@ private fun CartridgeCard(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun GameCaseTemplate(
+    modifier: Modifier = Modifier,
+) {
+    val context = LocalContext.current
+    val bitmap = remember {
+        val encoded = context.resources.openRawResource(R.raw.game_case_template_b64)
+            .bufferedReader()
+            .use { it.readText() }
+            .trim()
+        val bytes = Base64.decode(encoded, Base64.DEFAULT)
+        BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap()
+    }
+
+    if (bitmap != null) {
+        Image(
+            bitmap = bitmap,
+            contentDescription = null,
+            modifier = modifier,
+            contentScale = ContentScale.Fit,
+        )
     }
 }
 
