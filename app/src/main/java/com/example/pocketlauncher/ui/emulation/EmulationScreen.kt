@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.example.pocketlauncher.EmulationMenuPage
 import com.example.pocketlauncher.engine.MenuHotkey
+import com.example.pocketlauncher.engine.VideoBorderMode
 import com.example.pocketlauncher.engine.VideoEffectMode
 import com.example.pocketlauncher.engine.VideoFilterMode
 import com.example.pocketlauncher.engine.VideoScaleMode
@@ -42,6 +43,8 @@ fun EmulationScreen(
     scaleMode: VideoScaleMode,
     filterMode: VideoFilterMode,
     effectMode: VideoEffectMode,
+    borderMode: VideoBorderMode,
+    platformKey: String,
     menuHotkey: MenuHotkey,
     selectedStateSlot: Int,
     selectedStateSummary: String,
@@ -62,12 +65,16 @@ fun EmulationScreen(
                     this.scaleMode = scaleMode
                     this.filterMode = filterMode
                     this.effectMode = effectMode
+                    this.borderMode = borderMode
+                    this.platformKey = platformKey
                 }
             },
             update = { view ->
                 view.scaleMode = scaleMode
                 view.filterMode = filterMode
                 view.effectMode = effectMode
+                view.borderMode = borderMode
+                view.platformKey = platformKey
             },
             modifier = Modifier.fillMaxSize(),
         )
@@ -121,6 +128,7 @@ fun EmulationScreen(
                         "Scaling   ${scaleLabel(scaleMode)}",
                         "Filtering   ${if (filterMode == VideoFilterMode.SHARP) "Sharp" else "Smooth"}",
                         "Effect   ${effectLabel(effectMode)}",
+                        "Border   ${borderLabel(borderMode)}",
                         "Back",
                     )
                 }
@@ -290,6 +298,10 @@ private fun hotkeyLabel(hotkey: MenuHotkey): String = when (hotkey) {
     MenuHotkey.L1_R1 -> "L1 + R1"
 }
 
+private fun borderLabel(mode: VideoBorderMode): String = when (mode) {
+    VideoBorderMode.OFF -> "Off"
+    VideoBorderMode.AUTO -> "Auto"
+}
 private fun effectLabel(mode: VideoEffectMode): String = when (mode) {
     VideoEffectMode.OFF -> "Off"
     VideoEffectMode.SCANLINES -> "Scanlines"
