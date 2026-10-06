@@ -397,10 +397,6 @@ private fun GameMetadata(game: GameEntry) {
     ) {
         Column {
             MetadataRow("RATING", game.rating ?: "—")
-            MetadataRow("GENRE", game.genre ?: "—")
-            Spacer(Modifier.height(14.dp))
-            MetadataRow("DEVELOPER", game.developer ?: "—")
-            MetadataRow("PUBLISHER", game.publisher ?: "—")
             MetadataRow("RELEASE", game.releaseDate ?: "—")
         }
 
