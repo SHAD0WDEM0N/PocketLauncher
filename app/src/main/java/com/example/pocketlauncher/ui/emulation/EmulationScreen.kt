@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.example.pocketlauncher.EmulationMenuPage
 import com.example.pocketlauncher.engine.MenuHotkey
+import com.example.pocketlauncher.engine.VideoEffectMode
 import com.example.pocketlauncher.engine.VideoFilterMode
 import com.example.pocketlauncher.engine.VideoScaleMode
 
@@ -40,6 +41,7 @@ fun EmulationScreen(
     menuStatus: String,
     scaleMode: VideoScaleMode,
     filterMode: VideoFilterMode,
+    effectMode: VideoEffectMode,
     menuHotkey: MenuHotkey,
     selectedStateSlot: Int,
     selectedStateSummary: String,
@@ -59,11 +61,13 @@ fun EmulationScreen(
                 NativeFrameView(context).apply {
                     this.scaleMode = scaleMode
                     this.filterMode = filterMode
+                    this.effectMode = effectMode
                 }
             },
             update = { view ->
                 view.scaleMode = scaleMode
                 view.filterMode = filterMode
+                view.effectMode = effectMode
             },
             modifier = Modifier.fillMaxSize(),
         )
@@ -116,6 +120,7 @@ fun EmulationScreen(
                     items = listOf(
                         "Scaling   ${scaleLabel(scaleMode)}",
                         "Filtering   ${if (filterMode == VideoFilterMode.SHARP) "Sharp" else "Smooth"}",
+                        "Effect   ${effectLabel(effectMode)}",
                         "Back",
                     )
                 }
@@ -285,6 +290,12 @@ private fun hotkeyLabel(hotkey: MenuHotkey): String = when (hotkey) {
     MenuHotkey.L1_R1 -> "L1 + R1"
 }
 
+private fun effectLabel(mode: VideoEffectMode): String = when (mode) {
+    VideoEffectMode.OFF -> "Off"
+    VideoEffectMode.SCANLINES -> "Scanlines"
+    VideoEffectMode.LCD_GRID -> "LCD Grid"
+    VideoEffectMode.PIXEL_GRID -> "Pixel Grid"
+}
 private fun scaleLabel(mode: VideoScaleMode): String = when (mode) {
     VideoScaleMode.FIT -> "Fit"
     VideoScaleMode.INTEGER -> "Integer"
