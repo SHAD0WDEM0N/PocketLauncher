@@ -12,82 +12,126 @@ import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import java.text.Normalizer
 
+data class ScrapeCandidate(
+    val id: Int,
+    val title: String,
+    val artworkUrl: String?,
+    val releaseDate: String?,
+    val rating: String?,
+    val provider: String = "TheGamesDB",
+) {
+    fun toScrapedGameData(): ScrapedGameData = ScrapedGameData(
+        title = title,
+        artworkUrl = artworkUrl,
+        developer = null,
+        publisher = null,
+        releaseDate = releaseDate,
+        genre = null,
+        rating = rating,
+        provider = provider,
+    )
+}
+
 class TheGamesDbClient {
     suspend fun scrape(game: GameEntry, apiKey: String): Result<ScrapedGameData> =
-        withContext(Dispatchers.IO) {
-            runCatching {
-                require(apiKey.isNotBlank()) { "TheGamesDB API key is missing" }
-                val platformId = platformId(game.platform)
-                    ?: error("Platform is not supported by TheGamesDB scraper yet")
+        searchCandidates(game, apiKey).mapCatching { candidates ->
+            val scrapeTitle = scraperTitle(game.displayName)
+            candidates.maxByOrNull { candidate ->
+                scoreTitle(scrapeTitle, candidate.title)
+            }?.toScrapedGameData()
+                ?: error("No suitable match found for ${game.displayName}")
+        }
 
-                val scrapeTitle = scraperTitle(game.displayName)
-                val queries = scraperQueries(scrapeTitle)
-                var json: JSONObject? = null
-                var games: JSONArray? = null
-                var match: JSONObject? = null
+    suspend fun searchCandidates(
+        game: GameEntry,
+        apiKey: String,
+        limit: Int = 12,
+    ): Result<List<ScrapeCandidate>> = withContext(Dispatchers.IO) {
+        runCatching {
+            require(apiKey.isNotBlank()) { "TheGamesDB API key is missing" }
+            val platformId = platformId(game.platform)
+                ?: error("Platform is not supported by TheGamesDB scraper yet")
 
-                for (query in queries) {
-                    val encodedName = URLEncoder.encode(query, StandardCharsets.UTF_8.name())
-                    val requestUrl = buildString {
-                        append("https://api.thegamesdb.net/v1.1/Games/ByGameName")
-                        append("?apikey=").append(URLEncoder.encode(apiKey, StandardCharsets.UTF_8.name()))
-                        append("&name=").append(encodedName)
-                        append("&filter%5Bplatform%5D=").append(platformId)
-                        append("&fields=rating,platform")
-                        append("&include=boxart,platform")
-                    }
+            val scrapeTitle = scraperTitle(game.displayName)
+            val found = linkedMapOf<Int, ScrapeCandidate>()
 
-                    val candidateJson = JSONObject(get(requestUrl))
-                    val candidateGames = candidateJson.getJSONObject("data").optJSONArray("games") ?: JSONArray()
-                    if (candidateGames.length() == 0) continue
-
-                    val candidateMatch = chooseBestMatch(scrapeTitle, candidateGames) ?: continue
-                    json = candidateJson
-                    games = candidateGames
-                    match = candidateMatch
-                    break
+            for (query in scraperQueries(scrapeTitle)) {
+                val response = requestCandidates(query, platformId, apiKey)
+                for (candidate in response) {
+                    found.putIfAbsent(candidate.id, candidate)
+                    if (found.size >= limit) break
                 }
+                if (found.size >= limit) break
+            }
 
-                val matchedJson = json ?: error("No match found for ${game.displayName}")
-                val matchedGame = match ?: error("No suitable match found for ${game.displayName}")
+            if (found.isEmpty()) error("No matches found for ${game.displayName}")
 
-                val gameId = matchedGame.getInt("id").toString()
-                val include = matchedJson.optJSONObject("include")
-                val boxart = include?.optJSONObject("boxart")
-                val baseUrl = boxart
-                    ?.optJSONObject("base_url")
-                    ?.optString("medium")
-                    ?.takeIf { it.isNotBlank() }
-                val images = boxart
-                    ?.optJSONObject("data")
-                    ?.optJSONArray(gameId)
+            found.values
+                .sortedByDescending { scoreTitle(scrapeTitle, it.title) }
+                .take(limit)
+        }
+    }
 
-                var artworkUrl: String? = null
-                if (baseUrl != null && images != null) {
-                    for (index in 0 until images.length()) {
-                        val image = images.getJSONObject(index)
-                        if (image.optString("type") == "boxart" && image.optString("side") == "front") {
-                            val filename = image.optString("filename")
-                            if (filename.isNotBlank()) {
-                                artworkUrl = baseUrl + filename
-                                break
-                            }
-                        }
-                    }
-                }
+    private fun requestCandidates(
+        query: String,
+        platformId: Int,
+        apiKey: String,
+    ): List<ScrapeCandidate> {
+        val encodedName = URLEncoder.encode(query, StandardCharsets.UTF_8.name())
+        val requestUrl = buildString {
+            append("https://api.thegamesdb.net/v1.1/Games/ByGameName")
+            append("?apikey=").append(URLEncoder.encode(apiKey, StandardCharsets.UTF_8.name()))
+            append("&name=").append(encodedName)
+            append("&filter%5Bplatform%5D=").append(platformId)
+            append("&fields=rating,platform")
+            append("&include=boxart,platform")
+        }
 
-                ScrapedGameData(
-                    title = matchedGame.optString("game_title").takeIf { it.isNotBlank() },
-                    artworkUrl = artworkUrl,
-                    developer = null,
-                    publisher = null,
-                    releaseDate = matchedGame.optString("release_date").takeIf { it.isNotBlank() },
-                    genre = null,
-                    rating = matchedGame.optString("rating").takeIf { it.isNotBlank() },
-                    provider = "TheGamesDB",
+        val json = JSONObject(get(requestUrl))
+        val games = json.optJSONObject("data")?.optJSONArray("games") ?: JSONArray()
+        val boxart = json.optJSONObject("include")?.optJSONObject("boxart")
+        val baseUrl = boxart
+            ?.optJSONObject("base_url")
+            ?.optString("medium")
+            ?.takeIf { it.isNotBlank() }
+        val artworkData = boxart?.optJSONObject("data")
+
+        return buildList {
+            for (index in 0 until games.length()) {
+                val game = games.optJSONObject(index) ?: continue
+                val id = game.optInt("id", -1)
+                val title = game.optString("game_title")
+                if (id < 0 || title.isBlank()) continue
+
+                add(
+                    ScrapeCandidate(
+                        id = id,
+                        title = title,
+                        artworkUrl = artworkUrlFor(id, baseUrl, artworkData),
+                        releaseDate = game.optString("release_date").takeIf { it.isNotBlank() },
+                        rating = game.optString("rating").takeIf { it.isNotBlank() },
+                    )
                 )
             }
         }
+    }
+
+    private fun artworkUrlFor(
+        gameId: Int,
+        baseUrl: String?,
+        artworkData: JSONObject?,
+    ): String? {
+        if (baseUrl == null || artworkData == null) return null
+        val images = artworkData.optJSONArray(gameId.toString()) ?: return null
+        for (index in 0 until images.length()) {
+            val image = images.optJSONObject(index) ?: continue
+            if (image.optString("type") == "boxart" && image.optString("side") == "front") {
+                val filename = image.optString("filename")
+                if (filename.isNotBlank()) return baseUrl + filename
+            }
+        }
+        return null
+    }
 
     private fun scraperTitle(value: String): String {
         val stripped = value
@@ -117,7 +161,6 @@ class TheGamesDbClient {
             .replace(" & ", " ")
             .replace(Regex("""\s+"""), " ")
             .trim()
-
         val subtitle = title.substringAfter(':', "").trim()
         val beforeAmpersand = subtitle.substringBefore(" & ").trim()
         val beforeSlash = subtitle.substringBefore(" / ").trim()
@@ -128,64 +171,38 @@ class TheGamesDbClient {
             slashVariant,
             andVariant,
             punctuationFree,
-            if (subtitle.isNotBlank()) subtitle else title,
-            if (beforeAmpersand.isNotBlank()) beforeAmpersand else title,
-            if (beforeSlash.isNotBlank()) beforeSlash else title,
+            subtitle,
+            beforeAmpersand,
+            beforeSlash,
             franchisePrefix,
         )
             .map { it.replace(Regex("""\s+"""), " ").trim() }
             .filter { it.length >= 4 }
     }
-    private fun chooseBestMatch(query: String, games: JSONArray): JSONObject? {
+
+    private fun scoreTitle(query: String, candidate: String): Double {
         val normalizedQuery = normalizeTitle(query)
+        val normalizedCandidate = normalizeTitle(candidate)
         val queryTokens = normalizedQuery.split(' ').filter { it.isNotBlank() }.toSet()
-
-        var best: JSONObject? = null
-        var bestScore = Double.NEGATIVE_INFINITY
-
-        for (index in 0 until games.length()) {
-            val candidate = games.optJSONObject(index) ?: continue
-            val title = candidate.optString("game_title")
-            if (title.isBlank()) continue
-
-            val normalizedTitle = normalizeTitle(title)
-            val candidateTokens = normalizedTitle.split(' ').filter { it.isNotBlank() }.toSet()
-
-            val exactBonus = if (normalizedTitle == normalizedQuery) 100.0 else 0.0
-            val containsBonus = when {
-                normalizedTitle.startsWith(normalizedQuery) -> 12.0
-                normalizedTitle.contains(normalizedQuery) -> 8.0
-                else -> 0.0
-            }
-            val overlap = if (queryTokens.isEmpty()) 0.0 else {
-                queryTokens.intersect(candidateTokens).size.toDouble() / queryTokens.size.toDouble()
-            }
-            val extraPenalty = (candidateTokens - queryTokens).size * 1.5
-            val variantPenalty = if (listOf("special", "edition", "rando", "hack", "redux").any { it in candidateTokens && it !in queryTokens }) 8.0 else 0.0
-            val score = exactBonus + containsBonus + overlap * 20.0 - extraPenalty - variantPenalty
-
-            if (score > bestScore) {
-                bestScore = score
-                best = candidate
-            }
+        val candidateTokens = normalizedCandidate.split(' ').filter { it.isNotBlank() }.toSet()
+        val exactBonus = if (normalizedCandidate == normalizedQuery) 100.0 else 0.0
+        val overlap = if (queryTokens.isEmpty()) 0.0 else {
+            queryTokens.intersect(candidateTokens).size.toDouble() / queryTokens.size.toDouble()
         }
-
-        return if (bestScore >= 8.0) best else null
+        val extraPenalty = (candidateTokens - queryTokens).size * 1.25
+        return exactBonus + overlap * 30.0 - extraPenalty
     }
 
-    private fun normalizeTitle(value: String): String {
-        val ascii = Normalizer.normalize(value, Normalizer.Form.NFD)
+    private fun normalizeTitle(value: String): String =
+        Normalizer.normalize(value, Normalizer.Form.NFD)
             .replace(Regex("\\p{M}+"), "")
             .lowercase()
             .replace("&", " and ")
+            .replace("/", " and ")
             .replace(Regex("[^a-z0-9]+"), " ")
             .replace(Regex("\\s+"), " ")
-            .trim()
-        return ascii
-            .replace("pokemon", "pokemon")
             .replace(" version", "")
             .trim()
-    }
 
     private fun platformId(platform: Platform): Int? = when (platform) {
         Platform.GBA -> 5
