@@ -2,6 +2,8 @@ package com.example.pocketlauncher.ui.platform
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Matrix
+import android.graphics.Paint as AndroidPaint
 import android.util.Base64
 import android.util.LruCache
 import androidx.compose.foundation.Canvas
@@ -38,8 +40,7 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.TransformOrigin
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
@@ -288,33 +289,17 @@ private fun CartridgeCard(
             )
 
             if (game.artworkUrl != null) {
-                RemoteArtwork(
+                PerspectiveArtwork(
                     url = game.artworkUrl,
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .offset(x = 10.dp, y = (-1).dp)
-                        .width(76.dp)
-                        .height(102.dp)
-                        .graphicsLayer {
-                            rotationY = -5f
-                            transformOrigin = TransformOrigin(0.15f, 0.5f)
-                            cameraDistance = 18f * density
-                        }
-                        .clip(RoundedCornerShape(3.dp)),
-                    contentScale = ContentScale.Fit,
+                    modifier = Modifier.fillMaxSize(),
                 )
             } else {
                 Box(
                     modifier = Modifier
                         .align(Alignment.Center)
-                        .offset(x = 10.dp, y = (-1).dp)
-                        .width(76.dp)
-                        .height(102.dp)
-                        .graphicsLayer {
-                            rotationY = -5f
-                            transformOrigin = TransformOrigin(0.15f, 0.5f)
-                            cameraDistance = 18f * density
-                        }
+                        .offset(x = 8.dp, y = 0.dp)
+                        .width(78.dp)
+                        .height(106.dp)
                         .clip(RoundedCornerShape(3.dp))
                         .background(Color(0xFF151515)),
                     contentAlignment = Alignment.Center,
@@ -437,6 +422,54 @@ private fun decodeArtwork(url: String): Bitmap? {
         }
     }.getOrNull()
 }
+@Composable
+private fun PerspectiveArtwork(
+    url: String,
+    modifier: Modifier = Modifier,
+) {
+    var bitmap by remember(url) {
+        mutableStateOf(ArtworkMemoryCache.get(url))
+    }
+
+    LaunchedEffect(url) {
+        if (bitmap == null) {
+            bitmap = withContext(Dispatchers.IO) {
+                decodeArtwork(url)
+            }
+        }
+    }
+
+    val artwork = bitmap ?: return
+
+    Canvas(modifier = modifier) {
+        drawIntoCanvas { canvas ->
+            val sx = size.width / 126f
+            val sy = size.height / 148f
+
+            // Match the actual visible front insert of the rendered 2.5D case.
+            // This is intentionally a trapezoid rather than a rotated rectangle.
+            val dst = floatArrayOf(
+                32f * sx, 24f * sy,   // top-left
+                111f * sx, 18f * sy,  // top-right
+                112f * sx, 126f * sy, // bottom-right
+                33f * sx, 135f * sy,  // bottom-left
+            )
+            val src = floatArrayOf(
+                0f, 0f,
+                artwork.width.toFloat(), 0f,
+                artwork.width.toFloat(), artwork.height.toFloat(),
+                0f, artwork.height.toFloat(),
+            )
+
+            val matrix = Matrix().apply {
+                setPolyToPoly(src, 0, dst, 0, 4)
+            }
+            val paint = AndroidPaint(AndroidPaint.ANTI_ALIAS_FLAG or AndroidPaint.FILTER_BITMAP_FLAG)
+            canvas.nativeCanvas.drawBitmap(artwork, matrix, paint)
+        }
+    }
+}
+
 @Composable
 private fun RemoteArtwork(
     url: String,
