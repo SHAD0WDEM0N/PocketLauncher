@@ -41,7 +41,7 @@ class TheGamesDbClient {
                     val candidateGames = candidateJson.getJSONObject("data").optJSONArray("games") ?: JSONArray()
                     if (candidateGames.length() == 0) continue
 
-                    val candidateMatch = chooseBestMatch(query, candidateGames) ?: continue
+                    val candidateMatch = chooseBestMatch(scrapeTitle, candidateGames) ?: continue
                     json = candidateJson
                     games = candidateGames
                     match = candidateMatch
@@ -109,14 +109,33 @@ class TheGamesDbClient {
         }
     }
 
-    private fun scraperQueries(title: String): List<String> =
-        linkedSetOf(
+    private fun scraperQueries(title: String): List<String> {
+        val slashVariant = title.replace(" & ", " / ")
+        val andVariant = title.replace(" & ", " and ")
+        val punctuationFree = title
+            .replace(Regex("""[:/\\-]+"""), " ")
+            .replace(" & ", " ")
+            .replace(Regex("""\s+"""), " ")
+            .trim()
+
+        val subtitle = title.substringAfter(':', "").trim()
+        val beforeAmpersand = subtitle.substringBefore(" & ").trim()
+        val beforeSlash = subtitle.substringBefore(" / ").trim()
+        val franchisePrefix = title.substringBefore(':').trim()
+
+        return linkedSetOf(
             title,
-            title.replace(" & ", " / "),
-            title.replace(" & ", " and "),
-            title.replace(" / ", " & "),
-            title.replace(" / ", " and "),
-        ).filter { it.isNotBlank() }
+            slashVariant,
+            andVariant,
+            punctuationFree,
+            if (subtitle.isNotBlank()) subtitle else title,
+            if (beforeAmpersand.isNotBlank()) beforeAmpersand else title,
+            if (beforeSlash.isNotBlank()) beforeSlash else title,
+            franchisePrefix,
+        )
+            .map { it.replace(Regex("""\s+"""), " ").trim() }
+            .filter { it.length >= 4 }
+    }
     private fun chooseBestMatch(query: String, games: JSONArray): JSONObject? {
         val normalizedQuery = normalizeTitle(query)
         val queryTokens = normalizedQuery.split(' ').filter { it.isNotBlank() }.toSet()
@@ -151,7 +170,7 @@ class TheGamesDbClient {
             }
         }
 
-        return best
+        return if (bestScore >= 8.0) best else null
     }
 
     private fun normalizeTitle(value: String): String {
