@@ -154,6 +154,7 @@ fun ScrapeMatchScreen(
                 )
                 Spacer(Modifier.height(8.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(28.dp)) {
+                    MatchMeta("REGION", selected.region ?: "—")
                     MatchMeta("RELEASE", selected.releaseDate ?: "—")
                     MatchMeta("RATING", selected.rating ?: "—")
                     MatchMeta("SOURCE", selected.provider)
@@ -214,7 +215,16 @@ private fun MatchCandidateCard(
             }
         }
 
-        Spacer(Modifier.height(9.dp))
+        Spacer(Modifier.height(7.dp))
+
+        if (!candidate.region.isNullOrBlank()) {
+            Text(
+                text = candidate.region.uppercase(),
+                style = MaterialTheme.typography.labelSmall,
+                color = if (selected) Color(0xFF555555) else PocketWhiteMuted,
+            )
+            Spacer(Modifier.height(3.dp))
+        }
 
         Text(
             text = candidate.title,
