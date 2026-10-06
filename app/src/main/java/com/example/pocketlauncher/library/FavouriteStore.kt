@@ -8,6 +8,8 @@ class FavouriteStore(context: Context) {
 
     fun isFavourite(game: GameEntry): Boolean = prefs.getBoolean(key(game), false)
 
+    fun hasAnyFavourites(): Boolean = prefs.all.values.any { it == true }
+
     fun setFavourite(game: GameEntry, favourite: Boolean) {
         prefs.edit().putBoolean(key(game), favourite).apply()
     }
