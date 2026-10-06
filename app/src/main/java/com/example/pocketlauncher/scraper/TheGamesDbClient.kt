@@ -134,11 +134,10 @@ class TheGamesDbClient {
     }
 
     private fun scraperTitle(value: String): String {
-        val stripped = value
-            .replace(Regex("""\([^)]*\)"""), " ")
-            .replace(Regex("""\[[^]]*]"""), " ")
-            .replace(Regex("""\{[^}]*}"""), " ")
-            .replace(Regex("""\s+"""), " ")
+        val stripped = stripBracketedSegments(value)
+            .split(Regex("""\s+"""))
+            .filter { it.isNotBlank() }
+            .joinToString(" ")
             .trim()
 
         val articlePattern = Regex("""^(.+),\s*(The|A|An)\s*[-:]\s*(.+)$""", RegexOption.IGNORE_CASE)
@@ -151,6 +150,37 @@ class TheGamesDbClient {
         } else {
             stripped
         }
+    }
+
+    private fun stripBracketedSegments(value: String): String {
+        val out = StringBuilder(value.length)
+        var roundDepth = 0
+        var squareDepth = 0
+        var curlyDepth = 0
+
+        for (char in value) {
+            when (char) {
+                '(' -> roundDepth += 1
+                ')' -> if (roundDepth > 0) roundDepth -= 1
+                '[' -> squareDepth += 1
+                ']' -> if (squareDepth > 0) squareDepth -= 1
+                '{' -> curlyDepth += 1
+                '}' -> if (curlyDepth > 0) curlyDepth -= 1
+                else -> {
+                    if (roundDepth == 0 && squareDepth == 0 && curlyDepth == 0) {
+                        out.append(char)
+                    }
+                }
+            }
+
+            if ((char == ')' || char == ']' || char == '}') &&
+                roundDepth == 0 && squareDepth == 0 && curlyDepth == 0
+            ) {
+                out.append(' ')
+            }
+        }
+
+        return out.toString()
     }
 
     private fun scraperQueries(title: String): List<String> {
