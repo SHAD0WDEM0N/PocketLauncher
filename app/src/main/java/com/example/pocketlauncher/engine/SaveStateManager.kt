@@ -21,6 +21,28 @@ class SaveStateManager(
         return File(dir, "$baseName.slot$slot.state")
     }
 
+    fun thumbnailFile(game: GameEntry, slot: Int): File {
+        val stateFile = slotFile(game, slot)
+        return File(stateFile.parentFile, stateFile.nameWithoutExtension + ".png")
+    }
+
+    fun thumbnailPath(game: GameEntry, slot: Int): String? {
+        val file = thumbnailFile(game, slot)
+        return file.takeIf { it.exists() && it.length() > 0L }?.absolutePath
+    }
+
+    fun saveThumbnail(game: GameEntry, slot: Int, width: Int, height: Int, rgba: IntArray): Boolean {
+        if (width <= 0 || height <= 0 || rgba.size < width * height) return false
+        return runCatching {
+            val bitmap = android.graphics.Bitmap.createBitmap(rgba, width, height, android.graphics.Bitmap.Config.ARGB_8888)
+            thumbnailFile(game, slot).outputStream().use { output ->
+                bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 90, output)
+            }
+            bitmap.recycle()
+            true
+        }.getOrDefault(false)
+    }
+
     fun slotSummary(game: GameEntry, slot: Int): String {
         val file = slotFile(game, slot)
         if (!file.exists() || file.length() == 0L) return "Empty"
