@@ -384,18 +384,30 @@ private fun GbCartridgePlaceholder(
             )
         }
 
-        Text(
-            text = game.displayName.uppercase(),
-            modifier = Modifier
-                .align(Alignment.Center)
-                .padding(top = 12.dp)
-                .width(66.dp),
-            style = MaterialTheme.typography.labelSmall,
-            color = Color.White,
-            textAlign = TextAlign.Center,
-            maxLines = 3,
-            overflow = TextOverflow.Ellipsis,
-        )
+        if (game.artworkUrl != null) {
+            RemoteArtwork(
+                url = game.artworkUrl,
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .padding(top = 8.dp)
+                    .width(66.dp)
+                    .height(78.dp)
+                    .clip(RoundedCornerShape(3.dp)),
+            )
+        } else {
+            Text(
+                text = game.displayName.uppercase(),
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .padding(top = 12.dp)
+                    .width(66.dp),
+                style = MaterialTheme.typography.labelSmall,
+                color = Color.White,
+                textAlign = TextAlign.Center,
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
     }
 }
 
