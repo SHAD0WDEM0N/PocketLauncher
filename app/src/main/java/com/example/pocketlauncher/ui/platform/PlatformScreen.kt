@@ -278,34 +278,70 @@ private fun CartridgeCard(
             .border(1.dp, outerBorder),
         contentAlignment = Alignment.Center,
     ) {
-        Box(
-            modifier = Modifier
-                .width(112.dp)
-                .height(146.dp)
-                .offset(y = if (selected) (-3).dp else 0.dp)
-                .graphicsLayer {
-                    scaleX = if (selected) 1.035f else 1f
-                    scaleY = if (selected) 1.035f else 1f
-                    shadowElevation = if (selected) 14f else 7f
-                    shape = RoundedCornerShape(4.dp)
-                    clip = false
-                }
-                .background(Color(0xFF111111))
-                .border(
-                    width = if (selected) 2.dp else 1.dp,
-                    color = if (selected) Color.White else Color(0xFF444444),
-                    shape = RoundedCornerShape(4.dp),
-                )
-                .clip(RoundedCornerShape(4.dp)),
-            contentAlignment = Alignment.Center,
-        ) {
-            if (game.artworkUrl != null) {
-                RemoteArtwork(
-                    url = game.artworkUrl,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop,
-                )
-            } else {
+        ArtworkCard(
+            game = game,
+            selected = selected,
+        )
+    }
+}
+
+@Composable
+private fun ArtworkCard(
+    game: GameEntry,
+    selected: Boolean,
+) {
+    var aspectRatio by remember(game.artworkUrl) { mutableStateOf(0.78f) }
+
+    LaunchedEffect(game.artworkUrl) {
+        val url = game.artworkUrl ?: return@LaunchedEffect
+        val cached = ArtworkMemoryCache.get(url)
+        if (cached != null && cached.height > 0) {
+            aspectRatio = cached.width.toFloat() / cached.height.toFloat()
+        } else {
+            val decoded = withContext(Dispatchers.IO) { decodeArtwork(url) }
+            if (decoded != null && decoded.height > 0) {
+                aspectRatio = decoded.width.toFloat() / decoded.height.toFloat()
+            }
+        }
+    }
+
+    val maxHeight = 146.dp
+    val maxWidth = 118.dp
+    val targetWidth = minOf(maxWidth, maxHeight * aspectRatio.coerceIn(0.58f, 0.95f))
+
+    Box(
+        modifier = Modifier
+            .width(targetWidth)
+            .height(maxHeight)
+            .offset(y = if (selected) (-3).dp else 0.dp)
+            .graphicsLayer {
+                scaleX = if (selected) 1.035f else 1f
+                scaleY = if (selected) 1.035f else 1f
+                shadowElevation = if (selected) 14f else 7f
+                shape = RoundedCornerShape(4.dp)
+                clip = false
+            }
+            .border(
+                width = if (selected) 2.dp else 1.dp,
+                color = if (selected) Color.White else Color(0xFF444444),
+                shape = RoundedCornerShape(4.dp),
+            )
+            .clip(RoundedCornerShape(4.dp)),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (game.artworkUrl != null) {
+            RemoteArtwork(
+                url = game.artworkUrl,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Fit,
+            )
+        } else {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color(0xFF111111)),
+                contentAlignment = Alignment.Center,
+            ) {
                 Text(
                     text = game.displayName.uppercase(),
                     modifier = Modifier.padding(10.dp),
