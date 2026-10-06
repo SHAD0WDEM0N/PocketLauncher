@@ -162,7 +162,7 @@ fun PlatformScreen(
             text = if (folderLabel == null) {
                 "A  SELECT FOLDER     B  BACK"
             } else {
-                "◀  ▶  BROWSE    A  PLAY    X  OPTIONS    Y  RESCAN    B  BACK"
+                "◀  ▶  BROWSE    A  PLAY    X  OPTIONS    Y  FAVOURITE    B  BACK"
             },
             style = MaterialTheme.typography.labelSmall.merge(
                 TextStyle(fontSize = metrics.hintTextSize)
@@ -179,6 +179,10 @@ fun RecentlyPlayedScreen(
     games: List<GameEntry>,
     selectedIndex: Int,
     isScanning: Boolean,
+    title: String = "Recently Played",
+    emptyTitle: String = "No recent games yet.",
+    emptySubtitle: String = "Launch and quit a game to add it here.",
+    showFavouriteAction: Boolean = false,
 ) {
     val metrics = pocketLayoutMetrics()
     val listState = rememberLazyListState()
@@ -197,7 +201,7 @@ fun RecentlyPlayedScreen(
     ) {
         Spacer(Modifier.height(metrics.topPadding))
         Text(
-            text = "Recently Played",
+            text = title,
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onBackground,
         )
@@ -205,7 +209,7 @@ fun RecentlyPlayedScreen(
 
         when {
             isScanning -> EmptyMessage("Loading...", "Reading recent play history.")
-            games.isEmpty() -> EmptyMessage("No recent games yet.", "Launch and quit a game to add it here.")
+            games.isEmpty() -> EmptyMessage(emptyTitle, emptySubtitle)
             else -> {
                 LazyRow(
                     state = listState,
@@ -239,7 +243,11 @@ fun RecentlyPlayedScreen(
 
         Spacer(Modifier.weight(1f))
         Text(
-            text = "◀  ▶  BROWSE    A  PLAY    X  OPTIONS    B  BACK",
+            text = if (showFavouriteAction) {
+                "◀  ▶  BROWSE    A  PLAY    X  OPTIONS    Y  UNFAVOURITE    B  BACK"
+            } else {
+                "◀  ▶  BROWSE    A  PLAY    X  OPTIONS    B  BACK"
+            },
             style = MaterialTheme.typography.labelSmall.merge(TextStyle(fontSize = metrics.hintTextSize)),
             color = PocketWhiteMuted,
         )
