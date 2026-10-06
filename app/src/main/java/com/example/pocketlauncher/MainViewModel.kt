@@ -18,6 +18,7 @@ import com.example.pocketlauncher.engine.VideoFilterMode
 import com.example.pocketlauncher.engine.VideoScaleMode
 import com.example.pocketlauncher.input.PocketButton
 import com.example.pocketlauncher.input.PocketInputMapper
+import com.example.pocketlauncher.library.FavouriteStore
 import com.example.pocketlauncher.library.GameEntry
 import com.example.pocketlauncher.library.Platform
 import com.example.pocketlauncher.library.PlayHistoryStore
@@ -56,6 +57,7 @@ enum class Screen {
     HOME,
     PLATFORM,
     RECENTLY_PLAYED,
+    FAVOURITES,
     GAME_OPTIONS,
     SCRAPE_MATCHES,
     SETTINGS,
@@ -115,6 +117,8 @@ data class PocketUiState(
     val selectedStateSlot: Int = 0,
     val selectedStateSummary: String = "Empty",
     val onScreenMenuIconEnabled: Boolean = true,
+    val selectedStateThumbnailPath: String? = null,
+    val hasFavourites: Boolean = false,
 )
 
 class MainViewModel(
@@ -124,6 +128,7 @@ class MainViewModel(
     private val folderStore = RomFolderStore(application)
     private val romScanner = RomScanner(application)
     private val systemStore = SystemLibraryStore(application)
+    private val favouriteStore = FavouriteStore(application)
     private val playHistoryStore = PlayHistoryStore(application)
     private val scraperPreferences = ScraperPreferencesStore(application)
     private val scrapeCache = ScrapeCache(application)
@@ -157,6 +162,7 @@ class MainViewModel(
             videoFilterMode = emulationPreferences.filterMode(),
             menuHotkey = emulationPreferences.menuHotkey(),
             onScreenMenuIconEnabled = emulationPreferences.onScreenMenuIconEnabled(),
+            hasFavourites = favouriteStore.hasAnyFavourites(),
         )
     )
     val uiState: StateFlow<PocketUiState> = _uiState.asStateFlow()
@@ -178,6 +184,7 @@ class MainViewModel(
             Screen.HOME -> handleHomeInput(button)
             Screen.PLATFORM -> handlePlatformInput(button)
             Screen.RECENTLY_PLAYED -> handleRecentInput(button)
+            Screen.FAVOURITES -> handleFavouriteLibraryInput(button)
             Screen.GAME_OPTIONS -> handleGameOptionsInput(button)
             Screen.SCRAPE_MATCHES -> handleScrapeMatchesInput(button)
             Screen.SETTINGS -> handleSettingsInput(button)
@@ -216,19 +223,17 @@ class MainViewModel(
 
     private fun handleHomeInput(button: PocketButton): Boolean {
         val platforms = enabledPlatformsInOrder()
-        val menuSize = platforms.size + 2
+        val hasFavourites = _uiState.value.hasFavourites
+        val favouriteOffset = if (hasFavourites) 1 else 0
+        val menuSize = platforms.size + 2 + favouriteOffset
 
         when (button) {
             PocketButton.LEFT, PocketButton.UP -> {
-                _uiState.update {
-                    it.copy(menuIndex = (it.menuIndex - 1 + menuSize) % menuSize)
-                }
+                _uiState.update { it.copy(menuIndex = (it.menuIndex - 1 + menuSize) % menuSize) }
                 return true
             }
             PocketButton.RIGHT, PocketButton.DOWN -> {
-                _uiState.update {
-                    it.copy(menuIndex = (it.menuIndex + 1) % menuSize)
-                }
+                _uiState.update { it.copy(menuIndex = (it.menuIndex + 1) % menuSize) }
                 return true
             }
             else -> Unit
@@ -236,70 +241,15 @@ class MainViewModel(
 
         return when (button) {
             PocketButton.A -> {
+                val index = _uiState.value.menuIndex
                 when {
-                    _uiState.value.menuIndex == 0 -> openRecentlyPlayed()
-                    _uiState.value.menuIndex == menuSize - 1 -> {
-                        _uiState.update {
-                            it.copy(
-                                screen = Screen.SETTINGS,
-                                menuIndex = 0,
-                            )
-                        }
-                    }
+                    index == 0 -> openRecentlyPlayed()
+                    hasFavourites && index == 1 -> openFavourites()
+                    index == menuSize - 1 -> _uiState.update { it.copy(screen = Screen.SETTINGS, menuIndex = 0) }
                     else -> {
-                        val platform = platforms.getOrNull(_uiState.value.menuIndex - 1)
-                        if (platform != null) openPlatform(platform)
+                        val platformIndex = index - 1 - favouriteOffset
+                        platforms.getOrNull(platformIndex)?.let { openPlatform(it) }
                     }
-                }
-                true
-            }
-            else -> false
-        }
-    }
-
-    private fun handleRecentInput(button: PocketButton): Boolean {
-        val state = _uiState.value
-        return when (button) {
-            PocketButton.LEFT, PocketButton.UP -> {
-                if (state.games.isNotEmpty()) {
-                    _uiState.update { it.copy(gameIndex = (it.gameIndex - 1 + it.games.size) % it.games.size) }
-                }
-                true
-            }
-            PocketButton.RIGHT, PocketButton.DOWN -> {
-                if (state.games.isNotEmpty()) {
-                    _uiState.update { it.copy(gameIndex = (it.gameIndex + 1) % it.games.size) }
-                }
-                true
-            }
-            PocketButton.A -> {
-                state.games.getOrNull(state.gameIndex)?.let { startGame(it) }
-                true
-            }
-            PocketButton.X -> {
-                val game = state.games.getOrNull(state.gameIndex)
-                if (game != null) {
-                    _uiState.update {
-                        it.copy(
-                            screen = Screen.GAME_OPTIONS,
-                            menuIndex = 0,
-                            gameOptionsUri = game.uri,
-                            matchSearchStatus = "",
-                            scrapeCandidates = emptyList(),
-                            scrapeCandidateIndex = 0,
-                        )
-                    }
-                }
-                true
-            }
-            PocketButton.B -> {
-                _uiState.update {
-                    it.copy(
-                        screen = Screen.HOME,
-                        menuIndex = 0,
-                        games = emptyList(),
-                        gameIndex = 0,
-                    )
                 }
                 true
             }
@@ -558,7 +508,7 @@ class MainViewModel(
                 true
             }
             PocketButton.Y -> {
-                rescanCurrentPlatform()
+                toggleFavouriteSelected()
                 true
             }
             PocketButton.B -> {
@@ -1016,10 +966,20 @@ class MainViewModel(
         val path = saveStateManager.slotFile(game, slot).absolutePath
         activeSavePath?.let { PocketEngine.saveSaveRam(it) }
         val saved = PocketEngine.saveState(path)
+        if (saved) {
+            saveStateManager.saveThumbnail(
+                game = game,
+                slot = slot,
+                width = PocketEngine.frameWidth(),
+                height = PocketEngine.frameHeight(),
+                rgba = PocketEngine.copyFrameRgba(),
+            )
+        }
         val summary = saveStateManager.slotSummary(game, slot)
         _uiState.update {
             it.copy(
                 selectedStateSummary = summary,
+                selectedStateThumbnailPath = saveStateManager.thumbnailPath(game, slot),
                 emulationMenuStatus = if (saved) "State saved · Slot ${slot + 1}" else "Save state failed",
             )
         }
@@ -1050,6 +1010,7 @@ class MainViewModel(
             it.copy(
                 selectedStateSlot = next,
                 selectedStateSummary = saveStateManager.slotSummary(game, next),
+                selectedStateThumbnailPath = saveStateManager.thumbnailPath(game, next),
                 emulationMenuStatus = "",
             )
         }
@@ -1153,6 +1114,7 @@ class MainViewModel(
                     emulationMenuStatus = "",
                     selectedStateSlot = 0,
                     selectedStateSummary = saveStateManager.slotSummary(game, 0),
+                    selectedStateThumbnailPath = saveStateManager.thumbnailPath(game, 0),
                 )
             }
 
@@ -1354,11 +1316,52 @@ class MainViewModel(
         }
     }
 
+    private fun openFavourites() {
+        _uiState.update {
+            it.copy(screen = Screen.FAVOURITES, games = emptyList(), gameIndex = 0, isScanning = true)
+        }
+        viewModelScope.launch {
+            val favourites = buildList {
+                for (platform in enabledPlatformsInOrder()) {
+                    val folderUri = folderStore.getFolderUri(platform) ?: continue
+                    val scanned = romScanner.scan(platform, folderUri)
+                    addAll(scanned.map { game ->
+                        val scraped = scrapeCache.get(game)?.let { data -> applyScrapedData(game, data) } ?: game
+                        applyHistory(scraped)
+                    })
+                }
+            }.filter { it.isFavourite }
+
+            if (_uiState.value.screen == Screen.FAVOURITES) {
+                _uiState.update { it.copy(games = favourites, gameIndex = 0, isScanning = false) }
+            }
+        }
+    }
+
+    private fun toggleFavouriteSelected() {
+        val state = _uiState.value
+        val game = state.games.getOrNull(state.gameIndex) ?: return
+        val next = favouriteStore.toggle(game)
+        _uiState.update { current ->
+            val updated = current.games.map { existing ->
+                if (existing.uri == game.uri) existing.copy(isFavourite = next) else existing
+            }
+            val filtered = if (current.screen == Screen.FAVOURITES && !next) {
+                updated.filter { it.isFavourite }
+            } else updated
+            current.copy(
+                games = filtered,
+                gameIndex = current.gameIndex.coerceIn(0, (filtered.size - 1).coerceAtLeast(0)),
+                hasFavourites = favouriteStore.hasAnyFavourites(),
+            )
+        }
+    }
     private fun applyHistory(game: GameEntry): GameEntry {
         val history = playHistoryStore.get(game)
         return game.copy(
             lastPlayedEpochMs = history.lastPlayedEpochMs,
             playtimeSeconds = history.playtimeSeconds,
+            isFavourite = favouriteStore.isFavourite(game),
         )
     }
     private fun requestFolderPicker() {
