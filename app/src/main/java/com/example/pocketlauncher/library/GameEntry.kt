@@ -11,4 +11,10 @@ data class GameEntry(
     val fileName: String,
     val uri: String,
     val platform: Platform,
+    val support2dUrl: String? = null,
+    val developer: String? = null,
+    val publisher: String? = null,
+    val releaseDate: String? = null,
+    val genre: String? = null,
+    val rating: Int? = null,
 )
