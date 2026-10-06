@@ -280,8 +280,9 @@ class TheGamesDbClient {
     }
 
     private fun platformId(platform: Platform): Int? = when (platform) {
+        Platform.GB -> 4
+        Platform.GBC -> 41
         Platform.GBA -> 5
-        else -> null
     }
 
     private fun get(url: String): String {
