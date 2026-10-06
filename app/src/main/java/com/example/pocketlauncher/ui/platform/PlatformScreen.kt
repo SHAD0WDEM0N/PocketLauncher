@@ -1,6 +1,8 @@
 package com.example.pocketlauncher.ui.platform
 
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.util.LruCache
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -67,7 +69,7 @@ fun PlatformScreen(
 
     LaunchedEffect(safeIndex, games.size) {
         if (games.isNotEmpty()) {
-            listState.animateScrollToItem(safeIndex)
+            listState.scrollToItem(safeIndex)
         }
     }
 
@@ -190,7 +192,7 @@ fun RecentlyPlayedScreen(
     val selectedGame = games.getOrNull(safeIndex)
 
     LaunchedEffect(safeIndex, games.size) {
-        if (games.isNotEmpty()) listState.animateScrollToItem(safeIndex)
+        if (games.isNotEmpty()) listState.scrollToItem(safeIndex)
     }
 
     Column(
@@ -445,18 +447,51 @@ private fun MetadataRow(label: String, value: String) {
     }
 }
 
+private object ArtworkMemoryCache {
+    private val cache = object : LruCache<String, Bitmap>(12 * 1024 * 1024) {
+        override fun sizeOf(key: String, value: Bitmap): Int = value.byteCount
+    }
+
+    fun get(url: String): Bitmap? = cache.get(url)
+
+    fun put(url: String, bitmap: Bitmap) {
+        cache.put(url, bitmap)
+    }
+}
+
+private fun decodeArtwork(url: String): Bitmap? {
+    ArtworkMemoryCache.get(url)?.let { return it }
+    return runCatching {
+        val bytes = URL(url).openStream().use { it.readBytes() }
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+        var sample = 1
+        while (bounds.outWidth / sample > 320 || bounds.outHeight / sample > 320) {
+            sample *= 2
+        }
+        val options = BitmapFactory.Options().apply {
+            inSampleSize = sample.coerceAtLeast(1)
+            inPreferredConfig = Bitmap.Config.RGB_565
+        }
+        BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options)?.also {
+            ArtworkMemoryCache.put(url, it)
+        }
+    }.getOrNull()
+}
 @Composable
 private fun RemoteArtwork(
     url: String,
     modifier: Modifier = Modifier,
 ) {
-    var bitmap by remember(url) { mutableStateOf<androidx.compose.ui.graphics.ImageBitmap?>(null) }
+    var bitmap by remember(url) {
+        mutableStateOf(ArtworkMemoryCache.get(url)?.asImageBitmap())
+    }
 
     LaunchedEffect(url) {
-        bitmap = withContext(Dispatchers.IO) {
-            runCatching {
-                URL(url).openStream().use { BitmapFactory.decodeStream(it)?.asImageBitmap() }
-            }.getOrNull()
+        if (bitmap == null) {
+            bitmap = withContext(Dispatchers.IO) {
+                decodeArtwork(url)?.asImageBitmap()
+            }
         }
     }
 
