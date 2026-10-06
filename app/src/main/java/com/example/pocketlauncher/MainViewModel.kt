@@ -356,7 +356,7 @@ class MainViewModel(
     }
 
     private fun handleScraperSettingsInput(button: PocketButton): Boolean {
-        if (moveMenu(button, 3)) return true
+        if (moveMenu(button, 4)) return true
 
         return when (button) {
             PocketButton.A -> {
