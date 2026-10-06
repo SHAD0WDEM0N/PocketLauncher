@@ -40,6 +40,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.TextStyle
@@ -269,12 +270,6 @@ private fun CartridgeCard(
     val outerBackground = if (selected) Color(0xFFEDEAE3) else Color(0xFF181818)
     val outerBorder = if (selected) Color.White else Color(0xFF2A2A2A)
 
-    val frameColor = when (platform) {
-        Platform.GB -> Color(0xFFB8B4AA)
-        Platform.GBC -> Color(0xFF667A86)
-        Platform.GBA -> Color(0xFF5B5A82)
-    }
-
     Box(
         modifier = Modifier
             .width(170.dp)
@@ -286,54 +281,40 @@ private fun CartridgeCard(
         Box(
             modifier = Modifier
                 .width(104.dp)
-                .height(138.dp),
+                .height(138.dp)
+                .offset(y = if (selected) (-3).dp else 0.dp)
+                .graphicsLayer {
+                    scaleX = if (selected) 1.035f else 1f
+                    scaleY = if (selected) 1.035f else 1f
+                    shadowElevation = if (selected) 14f else 7f
+                    shape = RoundedCornerShape(4.dp)
+                    clip = false
+                }
+                .background(Color(0xFF111111))
+                .border(
+                    width = if (selected) 2.dp else 1.dp,
+                    color = if (selected) Color.White else Color(0xFF444444),
+                    shape = RoundedCornerShape(4.dp),
+                )
+                .clip(RoundedCornerShape(4.dp)),
             contentAlignment = Alignment.Center,
         ) {
-            // Rear plate gives the flat cover physical depth without distorting scraped art.
-            Box(
-                modifier = Modifier
-                    .matchParentSize()
-                    .offset(x = 7.dp, y = 6.dp)
-                    .background(frameColor.copy(alpha = if (selected) 0.92f else 0.72f))
-                    .border(1.dp, Color.Black.copy(alpha = 0.35f))
-            )
-
-            Box(
-                modifier = Modifier
-                    .matchParentSize()
-                    .offset(y = if (selected) (-3).dp else 0.dp)
-                    .background(frameColor)
-                    .border(
-                        width = if (selected) 2.dp else 1.dp,
-                        color = if (selected) Color.White else Color.Black.copy(alpha = 0.40f),
-                    )
-                    .padding(5.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                if (game.artworkUrl != null) {
-                    RemoteArtwork(
-                        url = game.artworkUrl,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Fit,
-                    )
-                } else {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color(0xFF111111)),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            text = game.displayName.uppercase(),
-                            modifier = Modifier.padding(8.dp),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color.White.copy(alpha = 0.88f),
-                            textAlign = TextAlign.Center,
-                            maxLines = 5,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                }
+            if (game.artworkUrl != null) {
+                RemoteArtwork(
+                    url = game.artworkUrl,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Fit,
+                )
+            } else {
+                Text(
+                    text = game.displayName.uppercase(),
+                    modifier = Modifier.padding(10.dp),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.White.copy(alpha = 0.88f),
+                    textAlign = TextAlign.Center,
+                    maxLines = 5,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
         }
     }
