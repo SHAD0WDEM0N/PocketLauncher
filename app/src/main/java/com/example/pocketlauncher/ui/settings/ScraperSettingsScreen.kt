@@ -24,7 +24,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
-import com.example.pocketlauncher.theme.MaterialTheme.colorScheme.primary
 import com.example.pocketlauncher.theme.PocketWhiteMuted
 import com.example.pocketlauncher.ui.common.pocketLayoutMetrics
 
