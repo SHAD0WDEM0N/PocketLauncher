@@ -28,7 +28,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.input.pointer.waitForUpOrCancellation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.example.pocketlauncher.EmulationMenuPage
@@ -396,7 +395,11 @@ private fun TouchControlButton(
                     awaitFirstDown(requireUnconsumed = false)
                     onControl(button, true)
                     try {
-                        waitForUpOrCancellation()
+                        var released = false
+                        while (!released) {
+                            val event = awaitPointerEvent()
+                            released = event.changes.none { it.pressed }
+                        }
                     } finally {
                         onControl(button, false)
                     }
