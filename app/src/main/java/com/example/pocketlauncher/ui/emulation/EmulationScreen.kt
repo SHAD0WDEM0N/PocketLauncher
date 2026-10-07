@@ -3,8 +3,11 @@ package com.example.pocketlauncher.ui.emulation
 import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,6 +28,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.waitForUpOrCancellation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.example.pocketlauncher.EmulationMenuPage
@@ -33,6 +37,7 @@ import com.example.pocketlauncher.engine.VideoBorderMode
 import com.example.pocketlauncher.engine.VideoEffectMode
 import com.example.pocketlauncher.engine.VideoFilterMode
 import com.example.pocketlauncher.engine.VideoScaleMode
+import com.example.pocketlauncher.input.PocketButton
 
 @Composable
 fun EmulationScreen(
@@ -50,7 +55,9 @@ fun EmulationScreen(
     selectedStateSummary: String,
     selectedStateThumbnailPath: String?,
     onScreenMenuIconEnabled: Boolean,
+    onScreenControlsEnabled: Boolean,
     onMenuIconClick: () -> Unit,
+    onTouchControl: (PocketButton, Boolean) -> Unit,
     onMenuItemClick: (Int) -> Unit,
     onStateSlotChange: (Int) -> Unit,
 ) {
@@ -79,10 +86,17 @@ fun EmulationScreen(
             modifier = Modifier.fillMaxSize(),
         )
 
+        if (onScreenControlsEnabled && !menuOpen) {
+            TouchControlsOverlay(
+                onControl = onTouchControl,
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
+
         if (onScreenMenuIconEnabled && !menuOpen) {
             Box(
                 modifier = Modifier
-                    .align(Alignment.BottomStart)
+                    .align(if (onScreenControlsEnabled) Alignment.TopStart else Alignment.BottomStart)
                     .padding(14.dp)
                     .size(42.dp)
                     .background(Color.Black.copy(alpha = 0.34f), CircleShape)
@@ -137,6 +151,7 @@ fun EmulationScreen(
                     items = listOf(
                         "Menu Hotkey   ${hotkeyLabel(menuHotkey)}",
                         "On-screen Menu Icon   ${if (onScreenMenuIconEnabled) "On" else "Off"}",
+                        "On-screen Controls   ${if (onScreenControlsEnabled) "On" else "Off"}",
                         "Back",
                     )
                 }
@@ -253,6 +268,146 @@ fun EmulationScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun TouchControlsOverlay(
+    onControl: (PocketButton, Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(modifier = modifier) {
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .padding(start = 24.dp, bottom = 30.dp)
+                .size(150.dp),
+        ) {
+            TouchControlButton(
+                label = "▲",
+                button = PocketButton.UP,
+                onControl = onControl,
+                modifier = Modifier.align(Alignment.TopCenter).size(54.dp),
+            )
+            TouchControlButton(
+                label = "▼",
+                button = PocketButton.DOWN,
+                onControl = onControl,
+                modifier = Modifier.align(Alignment.BottomCenter).size(54.dp),
+            )
+            TouchControlButton(
+                label = "◀",
+                button = PocketButton.LEFT,
+                onControl = onControl,
+                modifier = Modifier.align(Alignment.CenterStart).size(54.dp),
+            )
+            TouchControlButton(
+                label = "▶",
+                button = PocketButton.RIGHT,
+                onControl = onControl,
+                modifier = Modifier.align(Alignment.CenterEnd).size(54.dp),
+            )
+        }
+
+        Row(
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(end = 26.dp, bottom = 42.dp),
+            horizontalArrangement = Arrangement.spacedBy(18.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            TouchControlButton(
+                label = "B",
+                button = PocketButton.B,
+                onControl = onControl,
+                modifier = Modifier.size(66.dp),
+            )
+            TouchControlButton(
+                label = "A",
+                button = PocketButton.A,
+                onControl = onControl,
+                modifier = Modifier.size(66.dp),
+            )
+        }
+
+        Row(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 20.dp),
+            horizontalArrangement = Arrangement.spacedBy(18.dp),
+        ) {
+            TouchControlButton(
+                label = "SELECT",
+                button = PocketButton.SELECT,
+                onControl = onControl,
+                modifier = Modifier.width(82.dp).height(36.dp),
+                rounded = true,
+            )
+            TouchControlButton(
+                label = "START",
+                button = PocketButton.START,
+                onControl = onControl,
+                modifier = Modifier.width(82.dp).height(36.dp),
+                rounded = true,
+            )
+        }
+
+        TouchControlButton(
+            label = "L",
+            button = PocketButton.L1,
+            onControl = onControl,
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(start = 84.dp, top = 18.dp)
+                .width(92.dp)
+                .height(38.dp),
+            rounded = true,
+        )
+
+        TouchControlButton(
+            label = "R",
+            button = PocketButton.R1,
+            onControl = onControl,
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(end = 28.dp, top = 18.dp)
+                .width(92.dp)
+                .height(38.dp),
+            rounded = true,
+        )
+    }
+}
+
+@Composable
+private fun TouchControlButton(
+    label: String,
+    button: PocketButton,
+    onControl: (PocketButton, Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+    rounded: Boolean = false,
+) {
+    val shape = if (rounded) RoundedCornerShape(18.dp) else CircleShape
+    Box(
+        modifier = modifier
+            .background(Color.Black.copy(alpha = 0.34f), shape)
+            .pointerInput(button) {
+                awaitEachGesture {
+                    awaitFirstDown(requireUnconsumed = false)
+                    onControl(button, true)
+                    try {
+                        waitForUpOrCancellation()
+                    } finally {
+                        onControl(button, false)
+                    }
+                }
+            },
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelLarge,
+            color = Color.White.copy(alpha = 0.76f),
+        )
     }
 }
 
