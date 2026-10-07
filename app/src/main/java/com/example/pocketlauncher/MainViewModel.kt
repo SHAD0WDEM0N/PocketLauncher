@@ -1483,6 +1483,13 @@ class MainViewModel(
         }
     }
 
+    fun onCoreRemoveTouch() {
+        markTouchUi()
+        if (_uiState.value.screen == Screen.CORE_DOWNLOADS) {
+            handleCoreDownloadsInput(PocketButton.X)
+        }
+    }
+
     fun onTouchBack() {
         markTouchUi()
         when (_uiState.value.screen) {
