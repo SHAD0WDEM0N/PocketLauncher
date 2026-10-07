@@ -102,7 +102,7 @@ fun ConsoleMenuScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(Color.Transparent)
             .padding(horizontal = metrics.horizontalPadding),
     ) {
         Spacer(Modifier.height(metrics.topPadding))
@@ -206,7 +206,7 @@ private fun ConsoleMenuRow(
             style = MaterialTheme.typography.bodyLarge.merge(
                 TextStyle(fontSize = metrics.menuTextSize)
             ),
-            color = PocketAmber,
+            color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.width(32.dp),
         )
         Text(
