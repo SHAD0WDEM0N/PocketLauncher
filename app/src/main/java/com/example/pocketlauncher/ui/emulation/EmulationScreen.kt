@@ -31,6 +31,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.example.pocketlauncher.EmulationMenuPage
+import com.example.pocketlauncher.InputUiMode
 import com.example.pocketlauncher.engine.MenuHotkey
 import com.example.pocketlauncher.engine.VideoBorderMode
 import com.example.pocketlauncher.engine.VideoEffectMode
@@ -55,7 +56,8 @@ fun EmulationScreen(
     selectedStateThumbnailPath: String?,
     onScreenMenuIconEnabled: Boolean,
     onScreenControlsEnabled: Boolean,
-    physicalControllerInUse: Boolean,
+    inputUiMode: InputUiMode,
+    onTouchUiInteraction: () -> Unit,
     onMenuIconClick: () -> Unit,
     onTouchControl: (PocketButton, Boolean) -> Unit,
     onMenuItemClick: (Int) -> Unit,
@@ -86,7 +88,17 @@ fun EmulationScreen(
             modifier = Modifier.fillMaxSize(),
         )
 
-        if (onScreenControlsEnabled && !physicalControllerInUse && !menuOpen) {
+        if (onScreenControlsEnabled && inputUiMode == InputUiMode.CONTROLLER && !menuOpen) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .pointerInput(Unit) {
+                        detectTapGestures(onTap = { onTouchUiInteraction() })
+                    },
+            )
+        }
+
+        if (onScreenControlsEnabled && inputUiMode == InputUiMode.TOUCH && !menuOpen) {
             TouchControlsOverlay(
                 onControl = onTouchControl,
                 modifier = Modifier.fillMaxSize(),
@@ -96,7 +108,7 @@ fun EmulationScreen(
         if (onScreenMenuIconEnabled && !menuOpen) {
             Box(
                 modifier = Modifier
-                    .align(if (onScreenControlsEnabled && !physicalControllerInUse) Alignment.TopStart else Alignment.BottomStart)
+                    .align(if (onScreenControlsEnabled && inputUiMode == InputUiMode.TOUCH) Alignment.TopStart else Alignment.BottomStart)
                     .padding(14.dp)
                     .size(42.dp)
                     .background(Color.Black.copy(alpha = 0.34f), CircleShape)
