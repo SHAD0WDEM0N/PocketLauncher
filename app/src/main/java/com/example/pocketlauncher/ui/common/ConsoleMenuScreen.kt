@@ -3,8 +3,11 @@ package com.example.pocketlauncher.ui.common
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -13,6 +16,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import com.example.pocketlauncher.theme.PocketAmber
@@ -32,18 +36,45 @@ fun PocketActionBar(
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(7.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         actions.forEach { action ->
-            Text(
-                text = if (touchMode) action.touchLabel else action.controllerLabel,
+            val raw = if (touchMode) action.touchLabel else action.controllerLabel
+            val parts = raw.trim().split(Regex("\\s+"), limit = 2)
+            val badge = if (!touchMode && parts.size == 2 && parts[0].length <= 2) parts[0] else null
+            val label = if (badge != null) parts[1] else raw
+
+            Row(
                 modifier = Modifier
+                    .height(34.dp)
+                    .background(Color(0xFF171717), RoundedCornerShape(10.dp))
+                    .border(1.dp, Color.White.copy(alpha = 0.26f), RoundedCornerShape(10.dp))
                     .clickable(onClick = action.onClick)
-                    .padding(horizontal = 10.dp, vertical = 8.dp),
-                style = MaterialTheme.typography.labelSmall,
-                color = PocketWhiteMuted,
-            )
+                    .padding(horizontal = 10.dp),
+                horizontalArrangement = Arrangement.spacedBy(7.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (badge != null) {
+                    Box(
+                        modifier = Modifier
+                            .size(20.dp)
+                            .background(Color.White.copy(alpha = 0.92f), CircleShape),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = badge,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color(0xFF111111),
+                        )
+                    }
+                }
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.White.copy(alpha = 0.90f),
+                )
+            }
         }
     }
 }
@@ -143,7 +174,7 @@ fun ConsoleMenuScreen(
                 )
             },
         )
-        Spacer(Modifier.height(24.dp))
+        Spacer(Modifier.height(12.dp))
     }
 }
 
