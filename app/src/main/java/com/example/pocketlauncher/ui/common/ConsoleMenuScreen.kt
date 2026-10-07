@@ -16,6 +16,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
@@ -50,6 +51,7 @@ fun PocketActionBar(
                     .height(34.dp)
                     .background(Color(0xFF171717), RoundedCornerShape(10.dp))
                     .border(1.dp, Color.White.copy(alpha = 0.26f), RoundedCornerShape(10.dp))
+                    .focusProperties { canFocus = false }
                     .clickable(onClick = action.onClick)
                     .padding(horizontal = 10.dp),
                 horizontalArrangement = Arrangement.spacedBy(7.dp),
