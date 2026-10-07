@@ -34,6 +34,10 @@ import com.example.pocketlauncher.scraper.ScraperPreferencesStore
 import com.example.pocketlauncher.scraper.ScrapeCandidate
 import com.example.pocketlauncher.scraper.TheGamesDbClient
 import com.example.pocketlauncher.ui.input.ButtonEvent
+import com.example.pocketlauncher.theme.PocketAccentPreset
+import com.example.pocketlauncher.theme.PocketBackgroundStyle
+import com.example.pocketlauncher.theme.PocketThemeMode
+import com.example.pocketlauncher.theme.ThemePreferencesStore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -67,6 +71,7 @@ enum class Screen {
     SCRAPE_MATCHES,
     SETTINGS,
     FRONT_END_SETTINGS,
+    THEME_SETTINGS,
     SCRAPER_SETTINGS,
     EMULATOR_SETTINGS,
     SYSTEM_MANAGER,
@@ -130,6 +135,10 @@ data class PocketUiState(
     val inputUiMode: InputUiMode = InputUiMode.CONTROLLER,
     val selectedStateThumbnailPath: String? = null,
     val hasFavourites: Boolean = false,
+
+    val themeMode: PocketThemeMode = PocketThemeMode.DARK,
+    val themeAccent: PocketAccentPreset = PocketAccentPreset.AMBER,
+    val backgroundStyle: PocketBackgroundStyle = PocketBackgroundStyle.SOLID,
 )
 
 class MainViewModel(
@@ -150,6 +159,7 @@ class MainViewModel(
     private val batterySaveManager = BatterySaveManager(application)
     private val saveStateManager = SaveStateManager(application)
     private val emulationPreferences = EmulationPreferencesStore(application)
+    private val themePreferences = ThemePreferencesStore(application)
     private var emulationInputMask: Int = 0
     private val emulationHeldButtons = mutableSetOf<PocketButton>()
     private var activeSavePath: String? = null
@@ -176,6 +186,9 @@ class MainViewModel(
             onScreenMenuIconEnabled = emulationPreferences.onScreenMenuIconEnabled(),
             onScreenControlsEnabled = emulationPreferences.onScreenControlsEnabled(),
             hasFavourites = favouriteStore.hasAnyFavourites(),
+            themeMode = themePreferences.themeMode(),
+            themeAccent = themePreferences.accent(),
+            backgroundStyle = themePreferences.backgroundStyle(),
         )
     )
     val uiState: StateFlow<PocketUiState> = _uiState.asStateFlow()
@@ -208,6 +221,7 @@ class MainViewModel(
             Screen.SCRAPE_MATCHES -> handleScrapeMatchesInput(button)
             Screen.SETTINGS -> handleSettingsInput(button)
             Screen.FRONT_END_SETTINGS -> handleFrontEndSettingsInput(button)
+            Screen.THEME_SETTINGS -> handleThemeSettingsInput(button)
             Screen.SCRAPER_SETTINGS -> handleScraperSettingsInput(button)
             Screen.EMULATOR_SETTINGS -> handleEmulatorSettingsInput(button)
             Screen.SYSTEM_MANAGER -> handleSystemManagerInput(button)
@@ -369,6 +383,9 @@ class MainViewModel(
         return when (button) {
             PocketButton.A -> {
                 when (_uiState.value.menuIndex) {
+                    0 -> _uiState.update {
+                        it.copy(screen = Screen.THEME_SETTINGS, menuIndex = 0)
+                    }
                     1 -> _uiState.update {
                         it.copy(screen = Screen.SCRAPER_SETTINGS, menuIndex = 0)
                     }
@@ -383,6 +400,47 @@ class MainViewModel(
                 true
             }
             else -> false
+        }
+    }
+
+    private fun handleThemeSettingsInput(button: PocketButton): Boolean {
+        if (moveMenu(button, 3)) return true
+
+        return when (button) {
+            PocketButton.LEFT -> {
+                changeSelectedThemeOption(forward = false)
+                true
+            }
+            PocketButton.RIGHT, PocketButton.A -> {
+                changeSelectedThemeOption(forward = true)
+                true
+            }
+            PocketButton.B -> {
+                _uiState.update { it.copy(screen = Screen.FRONT_END_SETTINGS, menuIndex = 0) }
+                true
+            }
+            else -> false
+        }
+    }
+
+    private fun changeSelectedThemeOption(forward: Boolean) {
+        val state = _uiState.value
+        when (state.menuIndex) {
+            0 -> {
+                val value = if (forward) state.themeMode.next() else state.themeMode.previous()
+                themePreferences.setThemeMode(value)
+                _uiState.update { it.copy(themeMode = value) }
+            }
+            1 -> {
+                val value = if (forward) state.themeAccent.next() else state.themeAccent.previous()
+                themePreferences.setAccent(value)
+                _uiState.update { it.copy(themeAccent = value) }
+            }
+            2 -> {
+                val value = if (forward) state.backgroundStyle.next() else state.backgroundStyle.previous()
+                themePreferences.setBackgroundStyle(value)
+                _uiState.update { it.copy(backgroundStyle = value) }
+            }
         }
     }
 
@@ -1476,11 +1534,18 @@ class MainViewModel(
         when (screen) {
             Screen.SETTINGS -> handleSettingsInput(PocketButton.A)
             Screen.FRONT_END_SETTINGS -> handleFrontEndSettingsInput(PocketButton.A)
+            Screen.THEME_SETTINGS -> handleThemeSettingsInput(PocketButton.A)
             Screen.EMULATOR_SETTINGS -> handleEmulatorSettingsInput(PocketButton.A)
             Screen.SYSTEM_MANAGER -> handleSystemManagerInput(PocketButton.A)
             Screen.CORE_DOWNLOADS -> handleCoreDownloadsInput(PocketButton.A)
             else -> Unit
         }
+    }
+
+    fun onThemeItemTouch(index: Int) {
+        markTouchUi()
+        _uiState.update { it.copy(menuIndex = index.coerceIn(0, 2)) }
+        handleThemeSettingsInput(PocketButton.A)
     }
 
     fun onCoreRemoveTouch() {
@@ -1498,6 +1563,7 @@ class MainViewModel(
             Screen.FAVOURITES -> handleFavouriteLibraryInput(PocketButton.B)
             Screen.SETTINGS -> handleSettingsInput(PocketButton.B)
             Screen.FRONT_END_SETTINGS -> handleFrontEndSettingsInput(PocketButton.B)
+            Screen.THEME_SETTINGS -> handleThemeSettingsInput(PocketButton.B)
             Screen.EMULATOR_SETTINGS -> handleEmulatorSettingsInput(PocketButton.B)
             Screen.SYSTEM_MANAGER -> handleSystemManagerInput(PocketButton.B)
             Screen.CORE_DOWNLOADS -> handleCoreDownloadsInput(PocketButton.B)
