@@ -172,7 +172,6 @@ private fun ConsoleCard(
     selected: Boolean,
     onClick: () -> Unit,
 ) {
-    val cardBackground = MaterialTheme.colorScheme.background
     val cardBorder = if (selected) MaterialTheme.colorScheme.primary else PocketWhiteMuted.copy(alpha = 0.36f)
     val foreground = MaterialTheme.colorScheme.onBackground
 
@@ -188,7 +187,7 @@ private fun ConsoleCard(
                 clip = false
             }
             .clickable(onClick = onClick)
-            .background(cardBackground)
+            .background(Color.Transparent)
             .border(if (selected) 2.dp else 1.dp, cardBorder)
             .padding(10.dp),
     ) {
