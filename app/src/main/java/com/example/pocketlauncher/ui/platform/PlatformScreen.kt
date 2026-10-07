@@ -8,6 +8,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -67,6 +68,8 @@ fun PlatformScreen(
     games: List<GameEntry>,
     selectedIndex: Int,
     isScanning: Boolean,
+    onGameClick: (Int) -> Unit = {},
+    onBack: () -> Unit = {},
 ) {
     val metrics = pocketLayoutMetrics()
     val listState = rememberLazyListState()
@@ -98,7 +101,10 @@ fun PlatformScreen(
             )
             Spacer(Modifier.weight(1f))
             Text(
-                text = "L  R",
+                text = "‹ BACK",
+                modifier = Modifier
+                    .clickable(onClick = onBack)
+                    .padding(horizontal = 10.dp, vertical = 8.dp),
                 style = MaterialTheme.typography.labelSmall,
                 color = PocketWhiteMuted,
             )
@@ -142,6 +148,7 @@ fun PlatformScreen(
                             game = game,
                             selected = index == safeIndex,
                             platform = platform,
+                            onClick = { onGameClick(index) },
                         )
                     }
                 }
@@ -191,6 +198,8 @@ fun RecentlyPlayedScreen(
     emptyTitle: String = "No recent games yet.",
     emptySubtitle: String = "Launch and quit a game to add it here.",
     showFavouriteAction: Boolean = false,
+    onGameClick: (Int) -> Unit = {},
+    onBack: () -> Unit = {},
 ) {
     val metrics = pocketLayoutMetrics()
     val listState = rememberLazyListState()
@@ -208,11 +217,25 @@ fun RecentlyPlayedScreen(
             .padding(horizontal = metrics.horizontalPadding),
     ) {
         Spacer(Modifier.height(metrics.topPadding))
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onBackground,
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onBackground,
+            )
+            Spacer(Modifier.weight(1f))
+            Text(
+                text = "‹ BACK",
+                modifier = Modifier
+                    .clickable(onClick = onBack)
+                    .padding(horizontal = 10.dp, vertical = 8.dp),
+                style = MaterialTheme.typography.labelSmall,
+                color = PocketWhiteMuted,
+            )
+        }
         Spacer(Modifier.height(20.dp))
 
         when {
@@ -229,6 +252,7 @@ fun RecentlyPlayedScreen(
                             game = game,
                             selected = index == safeIndex,
                             platform = game.platform,
+                            onClick = { onGameClick(index) },
                         )
                     }
                 }
@@ -267,6 +291,7 @@ private fun CartridgeCard(
     game: GameEntry,
     selected: Boolean,
     platform: Platform,
+    onClick: () -> Unit,
 ) {
     val outerBackground = if (selected) Color(0xFFEDEAE3) else Color(0xFF181818)
     val outerBorder = if (selected) Color.White else Color(0xFF2A2A2A)
@@ -275,6 +300,7 @@ private fun CartridgeCard(
         modifier = Modifier
             .width(170.dp)
             .height(170.dp)
+            .clickable(onClick = onClick)
             .background(outerBackground)
             .border(1.dp, outerBorder),
         contentAlignment = Alignment.Center,
