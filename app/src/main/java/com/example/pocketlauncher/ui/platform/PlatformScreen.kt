@@ -120,14 +120,6 @@ fun PlatformScreen(
                 color = MaterialTheme.colorScheme.onBackground,
             )
             Spacer(Modifier.weight(1f))
-            Text(
-                text = "‹ BACK",
-                modifier = Modifier
-                    .clickable(onClick = onBack)
-                    .padding(horizontal = 10.dp, vertical = 8.dp),
-                style = MaterialTheme.typography.labelSmall,
-                color = PocketWhiteMuted,
-            )
         }
 
         Spacer(Modifier.height(20.dp))
@@ -257,14 +249,6 @@ fun RecentlyPlayedScreen(
                 color = MaterialTheme.colorScheme.onBackground,
             )
             Spacer(Modifier.weight(1f))
-            Text(
-                text = "‹ BACK",
-                modifier = Modifier
-                    .clickable(onClick = onBack)
-                    .padding(horizontal = 10.dp, vertical = 8.dp),
-                style = MaterialTheme.typography.labelSmall,
-                color = PocketWhiteMuted,
-            )
         }
         Spacer(Modifier.height(20.dp))
 
