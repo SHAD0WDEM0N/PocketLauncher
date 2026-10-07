@@ -2,9 +2,11 @@ package com.example.pocketlauncher
 
 import android.content.Intent
 import android.os.Bundle
+import android.os.Build
 import android.provider.Settings
 import android.util.Log
 import android.view.KeyEvent
+import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -42,6 +44,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        allowDisplayCutout()
         hideSystemUI()
 
         setContent {
@@ -83,6 +86,19 @@ class MainActivity : ComponentActivity() {
     override fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean {
         if (viewModel.onKeyEvent(event, pressed = false)) return true
         return super.onKeyUp(keyCode, event)
+    }
+
+    private fun allowDisplayCutout() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            window.attributes = window.attributes.apply {
+                layoutInDisplayCutoutMode =
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                        WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS
+                    } else {
+                        WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+                    }
+            }
+        }
     }
 
     private fun hideSystemUI() {
