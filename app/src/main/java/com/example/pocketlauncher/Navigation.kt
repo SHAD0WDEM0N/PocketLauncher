@@ -38,7 +38,10 @@ fun MainNavigation(
                 menuItems = menuItems,
                 manufacturers = Platform.entries.associate { it.displayName to it.manufacturer },
                 releaseYears = Platform.entries.associate { it.displayName to it.releaseYear },
+                touchMode = uiState.inputUiMode == InputUiMode.TOUCH,
                 onItemClick = viewModel::onHomeItemTouch,
+                onIndexChange = viewModel::onHomeIndexTouch,
+                onSelect = viewModel::onHomeSelectedTouch,
             )
         }
 
@@ -51,7 +54,12 @@ fun MainNavigation(
                     games = uiState.games,
                     selectedIndex = uiState.gameIndex,
                     isScanning = uiState.isScanning,
+                    touchMode = uiState.inputUiMode == InputUiMode.TOUCH,
                     onGameClick = viewModel::onGameTouch,
+                    onIndexChange = viewModel::onGameIndexTouch,
+                    onPlay = viewModel::onSelectedGamePlayTouch,
+                    onOptions = viewModel::onSelectedGameOptionsTouch,
+                    onFavourite = viewModel::onSelectedGameFavouriteTouch,
                     onBack = viewModel::onTouchBack,
                 )
             }
@@ -61,7 +69,12 @@ fun MainNavigation(
             games = uiState.games,
             selectedIndex = uiState.gameIndex,
             isScanning = uiState.isScanning,
+            touchMode = uiState.inputUiMode == InputUiMode.TOUCH,
             onGameClick = viewModel::onGameTouch,
+            onIndexChange = viewModel::onGameIndexTouch,
+            onPlay = viewModel::onSelectedGamePlayTouch,
+            onOptions = viewModel::onSelectedGameOptionsTouch,
+            onFavourite = viewModel::onSelectedGameFavouriteTouch,
             onBack = viewModel::onTouchBack,
         )
 
@@ -73,7 +86,12 @@ fun MainNavigation(
             emptyTitle = "No favourites yet.",
             emptySubtitle = "Favourite a game with Y to add it here.",
             showFavouriteAction = true,
+            touchMode = uiState.inputUiMode == InputUiMode.TOUCH,
             onGameClick = viewModel::onGameTouch,
+            onIndexChange = viewModel::onGameIndexTouch,
+            onPlay = viewModel::onSelectedGamePlayTouch,
+            onOptions = viewModel::onSelectedGameOptionsTouch,
+            onFavourite = viewModel::onSelectedGameFavouriteTouch,
             onBack = viewModel::onTouchBack,
         )
 
@@ -93,12 +111,14 @@ fun MainNavigation(
 
         Screen.SETTINGS -> SettingsScreen(
             selectedIndex = uiState.menuIndex,
+            touchMode = uiState.inputUiMode == InputUiMode.TOUCH,
             onItemClick = viewModel::onMenuItemTouch,
             onBack = viewModel::onTouchBack,
         )
 
         Screen.FRONT_END_SETTINGS -> FrontEndSettingsScreen(
             selectedIndex = uiState.menuIndex,
+            touchMode = uiState.inputUiMode == InputUiMode.TOUCH,
             onItemClick = viewModel::onMenuItemTouch,
             onBack = viewModel::onTouchBack,
         )
@@ -117,6 +137,7 @@ fun MainNavigation(
 
         Screen.EMULATOR_SETTINGS -> EmulatorSettingsScreen(
             selectedIndex = uiState.menuIndex,
+            touchMode = uiState.inputUiMode == InputUiMode.TOUCH,
             enabledPlatforms = uiState.enabledPlatforms,
             onItemClick = viewModel::onMenuItemTouch,
             onBack = viewModel::onTouchBack,
@@ -124,6 +145,7 @@ fun MainNavigation(
 
         Screen.SYSTEM_MANAGER -> SystemManagerScreen(
             selectedIndex = uiState.menuIndex,
+            touchMode = uiState.inputUiMode == InputUiMode.TOUCH,
             enabledPlatforms = uiState.enabledPlatforms,
             onItemClick = viewModel::onMenuItemTouch,
             onBack = viewModel::onTouchBack,
@@ -133,6 +155,7 @@ fun MainNavigation(
             installed = uiState.coreInstalled,
             downloading = uiState.coreDownloading,
             status = uiState.coreStatus,
+            touchMode = uiState.inputUiMode == InputUiMode.TOUCH,
             onItemClick = viewModel::onMenuItemTouch,
             onBack = viewModel::onTouchBack,
         )
