@@ -133,12 +133,12 @@ fun HomeScreen(
             modifier = Modifier.fillMaxWidth(),
         ) {
             val gap = 8.dp
-            val visibleCount = menuItems.size.coerceIn(1, 4)
+            val fitCount = menuItems.size.coerceIn(1, 5)
             val fittedCardWidth = (
-                (maxWidth - gap * (visibleCount - 1).toFloat()) / visibleCount.toFloat()
-            ).coerceIn(132.dp, 190.dp)
-            val cardWidth = if (menuItems.size <= 4) fittedCardWidth else 160.dp
-            val cardHeight = (cardWidth * 0.96f).coerceIn(148.dp, 182.dp)
+                (maxWidth - gap * (fitCount - 1).toFloat()) / fitCount.toFloat()
+            ).coerceIn(104.dp, 190.dp)
+            val cardWidth = if (menuItems.size <= 5) fittedCardWidth else 150.dp
+            val cardHeight = (cardWidth * 0.96f).coerceIn(112.dp, 182.dp)
 
             LazyRow(
                 state = listState,
@@ -193,7 +193,7 @@ private fun ConsoleCard(
     val cardBorder = if (selected) MaterialTheme.colorScheme.primary else PocketWhiteMuted.copy(alpha = 0.36f)
     val foreground = MaterialTheme.colorScheme.onBackground
     val interactionSource = remember(label) { MutableInteractionSource() }
-    val artScale = (cardWidth.value / 190f).coerceIn(0.72f, 1f)
+    val artScale = (cardWidth.value / 190f).coerceIn(0.54f, 1f)
 
     Column(
         modifier = Modifier
