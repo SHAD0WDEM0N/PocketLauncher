@@ -135,7 +135,9 @@ fun MainNavigation(
             selectedStateSummary = uiState.selectedStateSummary,
             selectedStateThumbnailPath = uiState.selectedStateThumbnailPath,
             onScreenMenuIconEnabled = uiState.onScreenMenuIconEnabled,
+            onScreenControlsEnabled = uiState.onScreenControlsEnabled,
             onMenuIconClick = viewModel::toggleInGameMenuFromTouch,
+            onTouchControl = viewModel::onTouchControl,
             onMenuItemClick = viewModel::onEmulationMenuTouch,
             onStateSlotChange = viewModel::onStateSlotTouch,
         )
