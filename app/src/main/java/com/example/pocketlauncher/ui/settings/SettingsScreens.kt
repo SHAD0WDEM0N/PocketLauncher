@@ -7,6 +7,7 @@ import com.example.pocketlauncher.ui.common.ConsoleMenuScreen
 @Composable
 fun SettingsScreen(
     selectedIndex: Int,
+    touchMode: Boolean = false,
     onItemClick: (Int) -> Unit = {},
     onBack: () -> Unit = {},
 ) {
@@ -18,6 +19,7 @@ fun SettingsScreen(
             "System Settings",
         ),
         selectedIndex = selectedIndex,
+        touchMode = touchMode,
         onItemClick = onItemClick,
         onBack = onBack,
     )
@@ -26,6 +28,7 @@ fun SettingsScreen(
 @Composable
 fun FrontEndSettingsScreen(
     selectedIndex: Int,
+    touchMode: Boolean = false,
     onItemClick: (Int) -> Unit = {},
     onBack: () -> Unit = {},
 ) {
@@ -46,6 +49,7 @@ fun FrontEndSettingsScreen(
 @Composable
 fun EmulatorSettingsScreen(
     selectedIndex: Int,
+    touchMode: Boolean = false,
     onItemClick: (Int) -> Unit = {},
     onBack: () -> Unit = {},
     enabledPlatforms: Set<Platform>,
@@ -72,6 +76,7 @@ fun EmulatorSettingsScreen(
 @Composable
 fun SystemManagerScreen(
     selectedIndex: Int,
+    touchMode: Boolean = false,
     onItemClick: (Int) -> Unit = {},
     onBack: () -> Unit = {},
     enabledPlatforms: Set<Platform>,
@@ -87,6 +92,9 @@ fun SystemManagerScreen(
         items = items,
         selectedIndex = selectedIndex,
         footer = "A  TOGGLE SYSTEM     B  BACK",
+        touchMode = touchMode,
+        primaryControllerLabel = "A  TOGGLE",
+        primaryTouchLabel = "TOGGLE",
         onItemClick = onItemClick,
         onBack = onBack,
     )
@@ -98,6 +106,7 @@ fun CoreDownloadsScreen(
     installed: Boolean,
     downloading: Boolean,
     status: String,
+    touchMode: Boolean = false,
     onItemClick: (Int) -> Unit = {},
     onBack: () -> Unit = {},
 ) {
@@ -112,6 +121,9 @@ fun CoreDownloadsScreen(
         subtitle = "$status  ·  GB / GBC / GBA",
         items = listOf(label),
         selectedIndex = 0,
+        touchMode = touchMode,
+        primaryControllerLabel = if (installed) "A  VERIFY / LOAD" else "A  DOWNLOAD",
+        primaryTouchLabel = if (installed) "VERIFY / LOAD" else "DOWNLOAD",
         footer = if (installed) {
             "A  VERIFY / LOAD     X  REMOVE     B  BACK"
         } else {
