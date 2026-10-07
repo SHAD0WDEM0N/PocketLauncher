@@ -58,6 +58,9 @@ fun ConsoleMenuScreen(
     touchMode: Boolean = false,
     primaryControllerLabel: String = "A  SELECT",
     primaryTouchLabel: String = "SELECT",
+    secondaryControllerLabel: String? = null,
+    secondaryTouchLabel: String? = null,
+    onSecondaryAction: (() -> Unit)? = null,
     onItemClick: (Int) -> Unit = {},
     onBack: () -> Unit = {},
 ) {
@@ -114,18 +117,31 @@ fun ConsoleMenuScreen(
         Spacer(Modifier.height(12.dp))
         PocketActionBar(
             touchMode = touchMode,
-            actions = listOf(
-                PocketAction(
-                    controllerLabel = primaryControllerLabel,
-                    touchLabel = primaryTouchLabel,
-                    onClick = { onItemClick(selectedIndex) },
-                ),
-                PocketAction(
-                    controllerLabel = "B  BACK",
-                    touchLabel = "BACK",
-                    onClick = onBack,
-                ),
-            ),
+            actions = buildList {
+                add(
+                    PocketAction(
+                        controllerLabel = primaryControllerLabel,
+                        touchLabel = primaryTouchLabel,
+                        onClick = { onItemClick(selectedIndex) },
+                    )
+                )
+                if (secondaryControllerLabel != null && secondaryTouchLabel != null && onSecondaryAction != null) {
+                    add(
+                        PocketAction(
+                            controllerLabel = secondaryControllerLabel,
+                            touchLabel = secondaryTouchLabel,
+                            onClick = onSecondaryAction,
+                        )
+                    )
+                }
+                add(
+                    PocketAction(
+                        controllerLabel = "B  BACK",
+                        touchLabel = "BACK",
+                        onClick = onBack,
+                    )
+                )
+            },
         )
         Spacer(Modifier.height(24.dp))
     }
