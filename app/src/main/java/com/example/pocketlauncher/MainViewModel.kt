@@ -4,6 +4,7 @@ import android.app.Application
 import android.net.Uri
 import android.os.SystemClock
 import android.view.KeyEvent
+import android.view.InputDevice
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.pocketlauncher.engine.PocketEngine
@@ -1228,7 +1229,7 @@ class MainViewModel(
                     selectedStateSlot = 0,
                     selectedStateSummary = saveStateManager.slotSummary(game, 0),
                     selectedStateThumbnailPath = saveStateManager.thumbnailPath(game, 0),
-                    physicalControllerInUse = false,
+                    physicalControllerInUse = hasPhysicalControllerConnected(),
                     videoScaleMode = emulationPreferences.scaleMode(game.platform.name),
                     videoFilterMode = emulationPreferences.filterMode(game.platform.name),
                     videoEffectMode = emulationPreferences.effectMode(game.platform.name),
@@ -1368,6 +1369,75 @@ class MainViewModel(
         if (_uiState.value.emulationMenuPage != EmulationMenuPage.MAIN) return
         _uiState.update { it.copy(emulationMenuIndex = 3, emulationMenuStatus = "") }
         cycleStateSlot(delta)
+    }
+
+    private fun hasPhysicalControllerConnected(): Boolean =
+        InputDevice.getDeviceIds().any { id ->
+            val device = InputDevice.getDevice(id) ?: return@any false
+            val sources = device.sources
+            (sources and InputDevice.SOURCE_GAMEPAD) == InputDevice.SOURCE_GAMEPAD ||
+                (sources and InputDevice.SOURCE_JOYSTICK) == InputDevice.SOURCE_JOYSTICK
+        }
+
+    fun onHomeItemTouch(index: Int) {
+        if (_uiState.value.screen != Screen.HOME) return
+        _uiState.update { it.copy(menuIndex = index) }
+        handleHomeInput(PocketButton.A)
+    }
+
+    fun onHomeIndexTouch(index: Int) {
+        if (_uiState.value.screen == Screen.HOME) {
+            _uiState.update { it.copy(menuIndex = index) }
+        }
+    }
+
+    fun onGameIndexTouch(index: Int) {
+        val state = _uiState.value
+        if (state.screen !in setOf(Screen.PLATFORM, Screen.RECENTLY_PLAYED, Screen.FAVOURITES)) return
+        if (index !in state.games.indices) return
+        _uiState.update { it.copy(gameIndex = index) }
+    }
+
+    fun onGameTouch(index: Int) {
+        val state = _uiState.value
+        if (state.screen !in setOf(Screen.PLATFORM, Screen.RECENTLY_PLAYED, Screen.FAVOURITES)) return
+        if (index !in state.games.indices) return
+        if (state.gameIndex == index) {
+            startGame(state.games[index])
+        } else {
+            _uiState.update { it.copy(gameIndex = index) }
+        }
+    }
+
+    fun onMenuItemTouch(index: Int) {
+        val screen = _uiState.value.screen
+        _uiState.update { it.copy(menuIndex = index) }
+        when (screen) {
+            Screen.SETTINGS -> handleSettingsInput(PocketButton.A)
+            Screen.FRONT_END_SETTINGS -> handleFrontEndSettingsInput(PocketButton.A)
+            Screen.EMULATOR_SETTINGS -> handleEmulatorSettingsInput(PocketButton.A)
+            Screen.SYSTEM_MANAGER -> handleSystemManagerInput(PocketButton.A)
+            Screen.CORE_DOWNLOADS -> handleCoreDownloadsInput(PocketButton.A)
+            else -> Unit
+        }
+    }
+
+    fun onTouchBack() {
+        when (_uiState.value.screen) {
+            Screen.PLATFORM -> handlePlatformInput(PocketButton.B)
+            Screen.RECENTLY_PLAYED -> handleRecentInput(PocketButton.B)
+            Screen.FAVOURITES -> handleFavouriteLibraryInput(PocketButton.B)
+            Screen.SETTINGS -> handleSettingsInput(PocketButton.B)
+            Screen.FRONT_END_SETTINGS -> handleFrontEndSettingsInput(PocketButton.B)
+            Screen.EMULATOR_SETTINGS -> handleEmulatorSettingsInput(PocketButton.B)
+            Screen.SYSTEM_MANAGER -> handleSystemManagerInput(PocketButton.B)
+            Screen.CORE_DOWNLOADS -> handleCoreDownloadsInput(PocketButton.B)
+            Screen.GAME_OPTIONS -> handleGameOptionsInput(PocketButton.B)
+            Screen.SCRAPE_MATCHES -> handleScrapeMatchesInput(PocketButton.B)
+            Screen.SCRAPER_SETTINGS -> handleScraperSettingsInput(PocketButton.B)
+            Screen.INPUT_TEST -> handleInputTestInput(PocketButton.B)
+            else -> Unit
+        }
     }
 
     private fun handleInputTestInput(button: PocketButton): Boolean {
