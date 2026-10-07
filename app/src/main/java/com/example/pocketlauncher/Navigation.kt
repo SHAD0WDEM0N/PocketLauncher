@@ -113,7 +113,6 @@ fun MainNavigation(
             selectedIndex = uiState.menuIndex,
             touchMode = uiState.inputUiMode == InputUiMode.TOUCH,
             onItemClick = viewModel::onMenuItemTouch,
-            onRemove = viewModel::onCoreRemoveTouch,
             onBack = viewModel::onTouchBack,
         )
 
@@ -158,6 +157,7 @@ fun MainNavigation(
             status = uiState.coreStatus,
             touchMode = uiState.inputUiMode == InputUiMode.TOUCH,
             onItemClick = viewModel::onMenuItemTouch,
+            onRemove = viewModel::onCoreRemoveTouch,
             onBack = viewModel::onTouchBack,
         )
 
