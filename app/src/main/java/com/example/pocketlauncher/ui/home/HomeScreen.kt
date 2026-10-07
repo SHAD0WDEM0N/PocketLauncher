@@ -8,6 +8,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -54,6 +55,7 @@ fun HomeScreen(
     menuItems: List<String>,
     manufacturers: Map<String, String> = emptyMap(),
     releaseYears: Map<String, String> = emptyMap(),
+    onItemClick: (Int) -> Unit = {},
 ) {
     val metrics = pocketLayoutMetrics()
     val safeIndex = selectedIndex.coerceIn(0, (menuItems.size - 1).coerceAtLeast(0))
@@ -114,6 +116,7 @@ fun HomeScreen(
                 ConsoleCard(
                     label = label,
                     selected = index == safeIndex,
+                    onClick = { onItemClick(index) },
                 )
             }
         }
@@ -144,6 +147,7 @@ fun HomeScreen(
 private fun ConsoleCard(
     label: String,
     selected: Boolean,
+    onClick: () -> Unit,
 ) {
     val selectedBackground = Color(0xFFECE9E2)
     val cardBackground = if (selected) selectedBackground else MaterialTheme.colorScheme.background
@@ -154,6 +158,7 @@ private fun ConsoleCard(
         modifier = Modifier
             .width(190.dp)
             .height(182.dp)
+            .clickable(onClick = onClick)
             .background(cardBackground)
             .border(1.dp, cardBorder)
             .padding(10.dp),
