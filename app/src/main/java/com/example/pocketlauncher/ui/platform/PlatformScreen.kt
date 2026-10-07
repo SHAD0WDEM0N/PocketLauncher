@@ -311,7 +311,6 @@ private fun CartridgeCard(
     platform: Platform,
     onClick: () -> Unit,
 ) {
-    val outerBackground = Color(0xFF111111)
     val outerBorder = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
 
     Box(
@@ -326,7 +325,7 @@ private fun CartridgeCard(
                 clip = false
             }
             .clickable(onClick = onClick)
-            .background(outerBackground)
+            .background(Color.Transparent)
             .border(if (selected) 2.dp else 1.dp, outerBorder),
         contentAlignment = Alignment.Center,
     ) {
@@ -395,7 +394,7 @@ private fun ArtworkCard(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color(0xFF111111)),
+                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.18f)),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
