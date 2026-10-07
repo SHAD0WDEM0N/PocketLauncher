@@ -12,14 +12,17 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
-import androidx.compose.foundation.layout.Box\nimport androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Modifier\nimport androidx.compose.ui.graphics.Color
-import com.example.pocketlauncher.theme.PocketBackground\nimport com.example.pocketlauncher.theme.PocketLauncherTheme
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import com.example.pocketlauncher.theme.PocketBackground
+import com.example.pocketlauncher.theme.PocketLauncherTheme
 
 class MainActivity : ComponentActivity() {
 
