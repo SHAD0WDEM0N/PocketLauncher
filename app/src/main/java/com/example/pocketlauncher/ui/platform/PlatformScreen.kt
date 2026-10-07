@@ -105,7 +105,7 @@ fun PlatformScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(Color.Transparent)
             .padding(horizontal = metrics.horizontalPadding),
     ) {
         Spacer(Modifier.height(metrics.topPadding))
@@ -235,7 +235,7 @@ fun RecentlyPlayedScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(Color.Transparent)
             .padding(horizontal = metrics.horizontalPadding),
     ) {
         Spacer(Modifier.height(metrics.topPadding))
@@ -312,7 +312,7 @@ private fun CartridgeCard(
     onClick: () -> Unit,
 ) {
     val outerBackground = Color(0xFF111111)
-    val outerBorder = if (selected) Color.White else Color(0xFF2A2A2A)
+    val outerBorder = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
 
     Box(
         modifier = Modifier
