@@ -19,6 +19,35 @@ import com.example.pocketlauncher.theme.PocketAmber
 import com.example.pocketlauncher.theme.PocketWhiteDim
 import com.example.pocketlauncher.theme.PocketWhiteMuted
 
+data class PocketAction(
+    val controllerLabel: String,
+    val touchLabel: String,
+    val onClick: () -> Unit,
+)
+
+@Composable
+fun PocketActionBar(
+    touchMode: Boolean,
+    actions: List<PocketAction>,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        actions.forEach { action ->
+            Text(
+                text = if (touchMode) action.touchLabel else action.controllerLabel,
+                modifier = Modifier
+                    .clickable(onClick = action.onClick)
+                    .padding(horizontal = 10.dp, vertical = 8.dp),
+                style = MaterialTheme.typography.labelSmall,
+                color = PocketWhiteMuted,
+            )
+        }
+    }
+}
+
 @Composable
 fun ConsoleMenuScreen(
     title: String,
@@ -26,6 +55,9 @@ fun ConsoleMenuScreen(
     selectedIndex: Int,
     footer: String = "A  SELECT     B  BACK",
     subtitle: String? = null,
+    touchMode: Boolean = false,
+    primaryControllerLabel: String = "A  SELECT",
+    primaryTouchLabel: String = "SELECT",
     onItemClick: (Int) -> Unit = {},
     onBack: () -> Unit = {},
 ) {
@@ -80,29 +112,21 @@ fun ConsoleMenuScreen(
 
         HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
         Spacer(Modifier.height(12.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = footer,
-                modifier = Modifier.weight(1f),
-                style = MaterialTheme.typography.labelSmall.merge(
-                    TextStyle(fontSize = metrics.hintTextSize)
+        PocketActionBar(
+            touchMode = touchMode,
+            actions = listOf(
+                PocketAction(
+                    controllerLabel = primaryControllerLabel,
+                    touchLabel = primaryTouchLabel,
+                    onClick = { onItemClick(selectedIndex) },
                 ),
-                color = PocketWhiteMuted,
-            )
-            Text(
-                text = "‹ BACK",
-                modifier = Modifier
-                    .clickable(onClick = onBack)
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
-                style = MaterialTheme.typography.labelSmall.merge(
-                    TextStyle(fontSize = metrics.hintTextSize)
+                PocketAction(
+                    controllerLabel = "B  BACK",
+                    touchLabel = "BACK",
+                    onClick = onBack,
                 ),
-                color = PocketWhiteMuted,
-            )
-        }
+            ),
+        )
         Spacer(Modifier.height(24.dp))
     }
 }
