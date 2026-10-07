@@ -133,12 +133,21 @@ fun HomeScreen(
             modifier = Modifier.fillMaxWidth(),
         ) {
             val gap = 8.dp
-            val fitCount = menuItems.size.coerceIn(1, 5)
+            // Work from the actual logical viewport rather than assuming 16:9.
+            // Wide handhelds can show more cards at once; 4:3 and smaller screens
+            // naturally show fewer and continue horizontally in the LazyRow.
+            val preferredMinCardWidth = 112.dp
+            val maxVisibleCards = (
+                ((maxWidth + gap) / (preferredMinCardWidth + gap))
+                    .toInt()
+                    .coerceAtLeast(1)
+            )
+            val fitCount = minOf(menuItems.size.coerceAtLeast(1), maxVisibleCards)
             val fittedCardWidth = (
                 (maxWidth - gap * (fitCount - 1).toFloat()) / fitCount.toFloat()
-            ).coerceIn(104.dp, 190.dp)
-            val cardWidth = if (menuItems.size <= 5) fittedCardWidth else 150.dp
-            val cardHeight = (cardWidth * 0.96f).coerceIn(112.dp, 182.dp)
+            ).coerceIn(preferredMinCardWidth, 190.dp)
+            val cardWidth = fittedCardWidth
+            val cardHeight = (cardWidth * 0.96f).coerceIn(120.dp, 182.dp)
 
             LazyRow(
                 state = listState,
