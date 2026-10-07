@@ -38,6 +38,7 @@ fun MainNavigation(
                 menuItems = menuItems,
                 manufacturers = Platform.entries.associate { it.displayName to it.manufacturer },
                 releaseYears = Platform.entries.associate { it.displayName to it.releaseYear },
+                onItemClick = viewModel::onHomeItemTouch,
             )
         }
 
@@ -50,6 +51,8 @@ fun MainNavigation(
                     games = uiState.games,
                     selectedIndex = uiState.gameIndex,
                     isScanning = uiState.isScanning,
+                    onGameClick = viewModel::onGameTouch,
+                    onBack = viewModel::onTouchBack,
                 )
             }
         }
@@ -58,6 +61,8 @@ fun MainNavigation(
             games = uiState.games,
             selectedIndex = uiState.gameIndex,
             isScanning = uiState.isScanning,
+            onGameClick = viewModel::onGameTouch,
+            onBack = viewModel::onTouchBack,
         )
 
         Screen.FAVOURITES -> RecentlyPlayedScreen(
@@ -68,6 +73,8 @@ fun MainNavigation(
             emptyTitle = "No favourites yet.",
             emptySubtitle = "Favourite a game with Y to add it here.",
             showFavouriteAction = true,
+            onGameClick = viewModel::onGameTouch,
+            onBack = viewModel::onTouchBack,
         )
 
         Screen.GAME_OPTIONS -> GameOptionsScreen(
@@ -86,10 +93,14 @@ fun MainNavigation(
 
         Screen.SETTINGS -> SettingsScreen(
             selectedIndex = uiState.menuIndex,
+            onItemClick = viewModel::onMenuItemTouch,
+            onBack = viewModel::onTouchBack,
         )
 
         Screen.FRONT_END_SETTINGS -> FrontEndSettingsScreen(
             selectedIndex = uiState.menuIndex,
+            onItemClick = viewModel::onMenuItemTouch,
+            onBack = viewModel::onTouchBack,
         )
 
         Screen.SCRAPER_SETTINGS -> ScraperSettingsScreen(
@@ -107,17 +118,23 @@ fun MainNavigation(
         Screen.EMULATOR_SETTINGS -> EmulatorSettingsScreen(
             selectedIndex = uiState.menuIndex,
             enabledPlatforms = uiState.enabledPlatforms,
+            onItemClick = viewModel::onMenuItemTouch,
+            onBack = viewModel::onTouchBack,
         )
 
         Screen.SYSTEM_MANAGER -> SystemManagerScreen(
             selectedIndex = uiState.menuIndex,
             enabledPlatforms = uiState.enabledPlatforms,
+            onItemClick = viewModel::onMenuItemTouch,
+            onBack = viewModel::onTouchBack,
         )
 
         Screen.CORE_DOWNLOADS -> CoreDownloadsScreen(
             installed = uiState.coreInstalled,
             downloading = uiState.coreDownloading,
             status = uiState.coreStatus,
+            onItemClick = viewModel::onMenuItemTouch,
+            onBack = viewModel::onTouchBack,
         )
 
         Screen.EMULATION -> EmulationScreen(
