@@ -11,6 +11,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -128,17 +129,31 @@ fun HomeScreen(
 
         Spacer(Modifier.height(12.dp))
 
-        LazyRow(
-            state = listState,
-            horizontalArrangement = if (menuItems.size <= 4) Arrangement.SpaceBetween else Arrangement.spacedBy(8.dp),
+        BoxWithConstraints(
             modifier = Modifier.fillMaxWidth(),
         ) {
-            itemsIndexed(menuItems) { index, label ->
-                ConsoleCard(
-                    label = label,
-                    selected = index == safeIndex,
-                    onClick = { onItemClick(index) },
-                )
+            val gap = 8.dp
+            val visibleCount = menuItems.size.coerceIn(1, 4)
+            val fittedCardWidth = (
+                (maxWidth - gap * (visibleCount - 1).toFloat()) / visibleCount.toFloat()
+            ).coerceIn(132.dp, 190.dp)
+            val cardWidth = if (menuItems.size <= 4) fittedCardWidth else 160.dp
+            val cardHeight = (cardWidth * 0.96f).coerceIn(148.dp, 182.dp)
+
+            LazyRow(
+                state = listState,
+                horizontalArrangement = Arrangement.spacedBy(gap),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                itemsIndexed(menuItems) { index, label ->
+                    ConsoleCard(
+                        label = label,
+                        selected = index == safeIndex,
+                        cardWidth = cardWidth,
+                        cardHeight = cardHeight,
+                        onClick = { onItemClick(index) },
+                    )
+                }
             }
         }
 
@@ -171,20 +186,21 @@ fun HomeScreen(
 private fun ConsoleCard(
     label: String,
     selected: Boolean,
+    cardWidth: androidx.compose.ui.unit.Dp,
+    cardHeight: androidx.compose.ui.unit.Dp,
     onClick: () -> Unit,
 ) {
     val cardBorder = if (selected) MaterialTheme.colorScheme.primary else PocketWhiteMuted.copy(alpha = 0.36f)
     val foreground = MaterialTheme.colorScheme.onBackground
     val interactionSource = remember(label) { MutableInteractionSource() }
+    val artScale = (cardWidth.value / 190f).coerceIn(0.72f, 1f)
 
     Column(
         modifier = Modifier
-            .width(190.dp)
-            .height(182.dp)
+            .width(cardWidth)
+            .height(cardHeight)
             .graphicsLayer {
-                scaleX = if (selected) 1.045f else 1f
-                scaleY = if (selected) 1.045f else 1f
-                shadowElevation = if (selected) 14f else 0f
+                shadowElevation = if (selected) 10f else 0f
                 shape = RoundedCornerShape(3.dp)
                 clip = false
             }
@@ -213,14 +229,14 @@ private fun ConsoleCard(
                     .align(Alignment.CenterHorizontally)
                     .size(
                         width = when (label) {
-                            "Game Boy Advance" -> 138.dp
-                            "Settings" -> 118.dp
-                            else -> 112.dp
+                            "Game Boy Advance" -> 138.dp * artScale
+                            "Settings" -> 118.dp * artScale
+                            else -> 112.dp * artScale
                         },
                         height = when (label) {
-                            "Game Boy Advance" -> 104.dp
-                            "Settings" -> 112.dp
-                            else -> 116.dp
+                            "Game Boy Advance" -> 104.dp * artScale
+                            "Settings" -> 112.dp * artScale
+                            else -> 116.dp * artScale
                         },
                     ),
             )
@@ -229,7 +245,7 @@ private fun ConsoleCard(
                 label = label,
                 modifier = Modifier
                     .align(Alignment.CenterHorizontally)
-                    .size(width = 124.dp, height = 92.dp),
+                    .size(width = 124.dp * artScale, height = 92.dp * artScale),
             )
         }
     }
