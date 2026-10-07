@@ -301,7 +301,7 @@ fun RecentlyPlayedScreen(
                 add(PocketAction("B  BACK", "BACK", onBack))
             },
         )
-        Spacer(Modifier.height(24.dp))
+        Spacer(Modifier.height(12.dp))
     }
 }
 @Composable
