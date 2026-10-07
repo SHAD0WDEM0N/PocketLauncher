@@ -122,6 +122,7 @@ data class PocketUiState(
     val selectedStateSlot: Int = 0,
     val selectedStateSummary: String = "Empty",
     val onScreenMenuIconEnabled: Boolean = true,
+    val onScreenControlsEnabled: Boolean = false,
     val selectedStateThumbnailPath: String? = null,
     val hasFavourites: Boolean = false,
 )
@@ -168,6 +169,7 @@ class MainViewModel(
             videoEffectMode = emulationPreferences.effectMode(Platform.GBA.name),
             menuHotkey = emulationPreferences.menuHotkey(),
             onScreenMenuIconEnabled = emulationPreferences.onScreenMenuIconEnabled(),
+            onScreenControlsEnabled = emulationPreferences.onScreenControlsEnabled(),
             hasFavourites = favouriteStore.hasAnyFavourites(),
         )
     )
@@ -831,7 +833,7 @@ class MainViewModel(
             val itemCount = when (state.emulationMenuPage) {
                 EmulationMenuPage.MAIN -> 8
                 EmulationMenuPage.DISPLAY -> 5
-                EmulationMenuPage.CONTROLLER -> 3
+                EmulationMenuPage.CONTROLLER -> 4
             }
 
             return when (button) {
@@ -1041,7 +1043,17 @@ class MainViewModel(
                         )
                     }
                 }
-                2 -> _uiState.update {
+                2 -> {
+                    val next = !state.onScreenControlsEnabled
+                    emulationPreferences.setOnScreenControlsEnabled(next)
+                    _uiState.update {
+                        it.copy(
+                            onScreenControlsEnabled = next,
+                            emulationMenuStatus = if (next) "On-screen controls enabled" else "On-screen controls disabled",
+                        )
+                    }
+                }
+                3 -> _uiState.update {
                     it.copy(
                         emulationMenuPage = EmulationMenuPage.MAIN,
                         emulationMenuIndex = 5,
@@ -1327,6 +1339,11 @@ class MainViewModel(
                 emulationMenuStatus = "",
             )
         }
+    }
+
+    fun onTouchControl(button: PocketButton, pressed: Boolean) {
+        if (_uiState.value.screen != Screen.EMULATION || _uiState.value.emulationMenuOpen) return
+        handleEmulationInput(button, pressed)
     }
 
     fun onEmulationMenuTouch(index: Int) {
