@@ -42,6 +42,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
@@ -69,6 +70,12 @@ fun HomeScreen(
     onSelect: () -> Unit = {},
 ) {
     val metrics = pocketLayoutMetrics()
+    val configuration = LocalConfiguration.current
+    val viewportAspect = if (configuration.screenHeightDp > 0) {
+        configuration.screenWidthDp.toFloat() / configuration.screenHeightDp.toFloat()
+    } else {
+        16f / 9f
+    }
     val safeIndex = selectedIndex.coerceIn(0, (menuItems.size - 1).coerceAtLeast(0))
     val selected = menuItems.getOrNull(safeIndex).orEmpty()
     val listState = rememberLazyListState()
@@ -93,13 +100,14 @@ fun HomeScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Transparent)
-            .padding(horizontal = metrics.horizontalPadding),
+            .background(Color.Transparent),
     ) {
         Spacer(Modifier.height(metrics.topPadding))
 
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = metrics.horizontalPadding),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
@@ -123,6 +131,7 @@ fun HomeScreen(
 
         Text(
             text = "HOME",
+            modifier = Modifier.padding(horizontal = metrics.horizontalPadding),
             style = MaterialTheme.typography.labelSmall,
             color = PocketWhiteMuted,
         )
@@ -133,20 +142,17 @@ fun HomeScreen(
             modifier = Modifier.fillMaxWidth(),
         ) {
             val gap = 8.dp
-            // Work from the actual logical viewport rather than assuming 16:9.
-            // Wide handhelds can show more cards at once; 4:3 and smaller screens
-            // naturally show fewer and continue horizontally in the LazyRow.
-            val preferredMinCardWidth = 112.dp
-            val maxVisibleCards = (
-                ((maxWidth + gap) / (preferredMinCardWidth + gap))
-                    .toInt()
-                    .coerceAtLeast(1)
-            )
-            val fitCount = minOf(menuItems.size.coerceAtLeast(1), maxVisibleCards)
-            val fittedCardWidth = (
+            // Aspect-ratio driven rather than resolution-locked. The carousel itself
+            // is edge-to-edge; only text/metadata keep safe visual margins.
+            val targetVisible = when {
+                viewportAspect >= 1.60f -> 5
+                viewportAspect >= 1.30f -> 4
+                else -> 3
+            }
+            val fitCount = minOf(menuItems.size.coerceAtLeast(1), targetVisible)
+            val cardWidth = (
                 (maxWidth - gap * (fitCount - 1).toFloat()) / fitCount.toFloat()
-            ).coerceIn(preferredMinCardWidth, 190.dp)
-            val cardWidth = fittedCardWidth
+            ).coerceIn(112.dp, 190.dp)
             val cardHeight = (cardWidth * 0.96f).coerceIn(120.dp, 182.dp)
 
             LazyRow(
@@ -168,24 +174,36 @@ fun HomeScreen(
 
         Spacer(Modifier.height(22.dp))
 
-        MetadataPanel(
-            label = selected,
-            manufacturer = manufacturers[selected] ?: specialManufacturer(selected),
-            releaseYear = releaseYears[selected] ?: "",
-        )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = metrics.horizontalPadding),
+        ) {
+            MetadataPanel(
+                label = selected,
+                manufacturer = manufacturers[selected] ?: specialManufacturer(selected),
+                releaseYear = releaseYears[selected] ?: "",
+            )
+        }
 
         Spacer(Modifier.weight(1f))
 
-        PocketActionBar(
-            touchMode = touchMode,
-            actions = listOf(
-                PocketAction(
-                    controllerLabel = "A  SELECT",
-                    touchLabel = "SELECT",
-                    onClick = onSelect,
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = metrics.horizontalPadding),
+        ) {
+            PocketActionBar(
+                touchMode = touchMode,
+                actions = listOf(
+                    PocketAction(
+                        controllerLabel = "A  SELECT",
+                        touchLabel = "SELECT",
+                        onClick = onSelect,
+                    ),
                 ),
-            ),
-        )
+            )
+        }
 
         Spacer(Modifier.height(12.dp))
     }
