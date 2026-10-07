@@ -2,6 +2,8 @@ package com.example.pocketlauncher.ui.input
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -39,8 +41,11 @@ data class ButtonEvent(
 fun InputTestScreen(
     events: List<ButtonEvent>,
     currentlyHeld: Set<PocketButton>,
+    touchMode: Boolean = false,
+    onBack: () -> Unit = {},
 ) {
     val listState = rememberLazyListState()
+    BackHandler(onBack = onBack)
 
     // Auto-scroll to latest event
     LaunchedEffect(events.size) {
@@ -104,11 +109,37 @@ fun InputTestScreen(
         }
 
         Spacer(Modifier.height(16.dp))
-        Text(
-            text  = "B  BACK",
-            style = MaterialTheme.typography.labelSmall,
-            color = PocketWhiteMuted,
-        )
+
+        if (touchMode) {
+            Box(
+                modifier = Modifier
+                    .background(
+                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp),
+                    )
+                    .border(
+                        width = 1.dp,
+                        color = MaterialTheme.colorScheme.outline,
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp),
+                    )
+                    .clickable(onClick = onBack)
+                    .padding(horizontal = 18.dp, vertical = 10.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = "BACK",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+            }
+        } else {
+            Text(
+                text  = "B  BACK",
+                style = MaterialTheme.typography.labelSmall,
+                color = PocketWhiteMuted,
+            )
+        }
+
         Spacer(Modifier.height(32.dp))
     }
 }
