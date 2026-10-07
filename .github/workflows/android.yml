@@ -2,9 +2,9 @@ name: Android CI
 
 on:
   push:
-    branches: [ "main", "develop" ]
+    branches: [ "master", "develop" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "master" ]
 
 jobs:
   build:
@@ -24,12 +24,19 @@ jobs:
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          packages: ''
 
-      - name: Install NDK
+      - name: Install NDK and platform tools
         run: |
-          sdkmanager "ndk;27.0.12077973" "cmake;3.22.1"
+          sdkmanager "platform-tools" "ndk;27.0.12077973" "cmake;3.22.1"
         env:
           ANDROID_SDK_ROOT: ${{ env.ANDROID_HOME }}
+
+      - name: Prepare stable development keystore
+        run: |
+          base64 --decode .github/pocketlauncher-dev.keystore.b64 > "$RUNNER_TEMP/pocketlauncher-dev.jks"
+          echo "POCKETLAUNCHER_KEYSTORE=$RUNNER_TEMP/pocketlauncher-dev.jks" >> "$GITHUB_ENV"
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew

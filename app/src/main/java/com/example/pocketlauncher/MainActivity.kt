@@ -1,55 +1,82 @@
 package com.example.pocketlauncher
 
+import android.content.Intent
 import android.os.Bundle
+import android.os.Build
+import android.provider.Settings
+import android.util.Log
 import android.view.KeyEvent
+import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import com.example.pocketlauncher.theme.PocketLauncherTheme
 
-/**
- * MainActivity — single-activity host for PocketLauncher.
- *
- * Responsibilities:
- *   1. Full-screen immersive mode (edge-to-edge, no system chrome).
- *   2. Route all hardware [KeyEvent]s through [MainViewModel.onKeyEvent].
- *   3. Host the Compose navigation graph.
- */
 class MainActivity : ComponentActivity() {
 
     private val viewModel: MainViewModel by viewModels()
 
+    private val folderPickerLauncher =
+        registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+            if (uri == null) return@registerForActivityResult
+
+            try {
+                contentResolver.takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION,
+                )
+            } catch (e: SecurityException) {
+                Log.w("PocketLauncher", "Could not persist folder permission: ${e.message}")
+            }
+
+            viewModel.onFolderSelected(uri)
+        }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        allowDisplayCutout()
         hideSystemUI()
 
         setContent {
             PocketLauncherTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color    = MaterialTheme.colorScheme.background,
+                    color = MaterialTheme.colorScheme.background,
                 ) {
                     val uiState by viewModel.uiState.collectAsState()
+
+                    LaunchedEffect(uiState.folderPickerRequested) {
+                        if (uiState.folderPickerRequested) {
+                            folderPickerLauncher.launch(null)
+                            viewModel.onFolderPickerLaunched()
+                        }
+                    }
+
+                    LaunchedEffect(uiState.systemSettingsRequested) {
+                        if (uiState.systemSettingsRequested) {
+                            startActivity(Intent(Settings.ACTION_SETTINGS))
+                            viewModel.onSystemSettingsLaunched()
+                        }
+                    }
+
                     MainNavigation(
-                        uiState   = uiState,
+                        uiState = uiState,
                         viewModel = viewModel,
                     )
                 }
             }
         }
     }
-
-    // -------------------------------------------------------------------------
-    // Controller input — all raw KeyEvents flow here before Compose sees them
-    // -------------------------------------------------------------------------
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
         if (viewModel.onKeyEvent(event, pressed = true)) return true
@@ -61,19 +88,28 @@ class MainActivity : ComponentActivity() {
         return super.onKeyUp(keyCode, event)
     }
 
-    // -------------------------------------------------------------------------
-    // Immersive full-screen — critical for a launcher / console feel
-    // -------------------------------------------------------------------------
+    private fun allowDisplayCutout() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            window.attributes = window.attributes.apply {
+                layoutInDisplayCutoutMode =
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                        WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS
+                    } else {
+                        WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+                    }
+            }
+        }
+    }
 
     private fun hideSystemUI() {
         window.decorView.systemUiVisibility = (
             android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-            or android.view.View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-            or android.view.View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-            or android.view.View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-            or android.view.View.SYSTEM_UI_FLAG_FULLSCREEN
-            or android.view.View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-        )
+                or android.view.View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                or android.view.View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                or android.view.View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                or android.view.View.SYSTEM_UI_FLAG_FULLSCREEN
+                or android.view.View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+            )
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
