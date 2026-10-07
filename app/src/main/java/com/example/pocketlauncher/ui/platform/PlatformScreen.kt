@@ -33,6 +33,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
@@ -54,7 +55,10 @@ import com.example.pocketlauncher.library.GameEntry
 import com.example.pocketlauncher.library.Platform
 import com.example.pocketlauncher.theme.PocketWhiteMuted
 import com.example.pocketlauncher.ui.common.pocketLayoutMetrics
+import com.example.pocketlauncher.ui.common.PocketAction
+import com.example.pocketlauncher.ui.common.PocketActionBar
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.withContext
 import java.net.URL
 import java.text.SimpleDateFormat
@@ -68,7 +72,12 @@ fun PlatformScreen(
     games: List<GameEntry>,
     selectedIndex: Int,
     isScanning: Boolean,
+    touchMode: Boolean = false,
     onGameClick: (Int) -> Unit = {},
+    onIndexChange: (Int) -> Unit = {},
+    onPlay: () -> Unit = {},
+    onOptions: () -> Unit = {},
+    onFavourite: () -> Unit = {},
     onBack: () -> Unit = {},
 ) {
     val metrics = pocketLayoutMetrics()
@@ -81,6 +90,17 @@ fun PlatformScreen(
             listState.scrollToItem(safeIndex)
         }
     }
+
+    LaunchedEffect(listState, safeIndex, games.size) {
+        snapshotFlow { listState.firstVisibleItemIndex }
+            .distinctUntilChanged()
+            .collect { index ->
+                if (games.isNotEmpty() && index in games.indices && index != safeIndex) {
+                    onIndexChange(index)
+                }
+            }
+    }
+
 
     Column(
         modifier = Modifier
@@ -173,16 +193,21 @@ fun PlatformScreen(
 
         Spacer(Modifier.weight(1f))
 
-        Text(
-            text = if (folderLabel == null) {
-                "A  SELECT FOLDER     B  BACK"
+        PocketActionBar(
+            touchMode = touchMode,
+            actions = if (folderLabel == null) {
+                listOf(
+                    PocketAction("A  SELECT FOLDER", "SELECT FOLDER", onPlay),
+                    PocketAction("B  BACK", "BACK", onBack),
+                )
             } else {
-                "◀  ▶  BROWSE    A  PLAY    X  OPTIONS    Y  FAVOURITE    B  BACK"
+                listOf(
+                    PocketAction("A  PLAY", "PLAY", onPlay),
+                    PocketAction("X  OPTIONS", "OPTIONS", onOptions),
+                    PocketAction("Y  FAVOURITE", "FAVOURITE", onFavourite),
+                    PocketAction("B  BACK", "BACK", onBack),
+                )
             },
-            style = MaterialTheme.typography.labelSmall.merge(
-                TextStyle(fontSize = metrics.hintTextSize)
-            ),
-            color = PocketWhiteMuted,
         )
 
         Spacer(Modifier.height(24.dp))
@@ -198,7 +223,12 @@ fun RecentlyPlayedScreen(
     emptyTitle: String = "No recent games yet.",
     emptySubtitle: String = "Launch and quit a game to add it here.",
     showFavouriteAction: Boolean = false,
+    touchMode: Boolean = false,
     onGameClick: (Int) -> Unit = {},
+    onIndexChange: (Int) -> Unit = {},
+    onPlay: () -> Unit = {},
+    onOptions: () -> Unit = {},
+    onFavourite: () -> Unit = {},
     onBack: () -> Unit = {},
 ) {
     val metrics = pocketLayoutMetrics()
@@ -274,14 +304,18 @@ fun RecentlyPlayedScreen(
         }
 
         Spacer(Modifier.weight(1f))
-        Text(
-            text = if (showFavouriteAction) {
-                "◀  ▶  BROWSE    A  PLAY    X  OPTIONS    Y  UNFAVOURITE    B  BACK"
-            } else {
-                "◀  ▶  BROWSE    A  PLAY    X  OPTIONS    B  BACK"
+        PocketActionBar(
+            touchMode = touchMode,
+            actions = buildList {
+                add(PocketAction("A  PLAY", "PLAY", onPlay))
+                add(PocketAction("X  OPTIONS", "OPTIONS", onOptions))
+                if (showFavouriteAction) {
+                    add(PocketAction("Y  UNFAVOURITE", "UNFAVOURITE", onFavourite))
+                } else {
+                    add(PocketAction("Y  FAVOURITE", "FAVOURITE", onFavourite))
+                }
+                add(PocketAction("B  BACK", "BACK", onBack))
             },
-            style = MaterialTheme.typography.labelSmall.merge(TextStyle(fontSize = metrics.hintTextSize)),
-            color = PocketWhiteMuted,
         )
         Spacer(Modifier.height(24.dp))
     }
