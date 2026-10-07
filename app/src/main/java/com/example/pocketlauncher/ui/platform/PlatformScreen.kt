@@ -92,10 +92,10 @@ fun PlatformScreen(
     }
 
     LaunchedEffect(listState, safeIndex, games.size) {
-        snapshotFlow { listState.firstVisibleItemIndex }
+        snapshotFlow { listState.isScrollInProgress to listState.firstVisibleItemIndex }
             .distinctUntilChanged()
-            .collect { index ->
-                if (games.isNotEmpty() && index in games.indices && index != safeIndex) {
+            .collect { (scrolling, index) ->
+                if (touchMode && scrolling && games.isNotEmpty() && index in games.indices && index != safeIndex) {
                     onIndexChange(index)
                 }
             }
@@ -311,16 +311,23 @@ private fun CartridgeCard(
     platform: Platform,
     onClick: () -> Unit,
 ) {
-    val outerBackground = if (selected) Color(0xFFEDEAE3) else Color(0xFF181818)
+    val outerBackground = Color(0xFF111111)
     val outerBorder = if (selected) Color.White else Color(0xFF2A2A2A)
 
     Box(
         modifier = Modifier
             .width(170.dp)
             .height(170.dp)
+            .graphicsLayer {
+                scaleX = if (selected) 1.055f else 1f
+                scaleY = if (selected) 1.055f else 1f
+                shadowElevation = if (selected) 16f else 2f
+                shape = RoundedCornerShape(4.dp)
+                clip = false
+            }
             .clickable(onClick = onClick)
             .background(outerBackground)
-            .border(1.dp, outerBorder),
+            .border(if (selected) 2.dp else 1.dp, outerBorder),
         contentAlignment = Alignment.Center,
     ) {
         ArtworkCard(
