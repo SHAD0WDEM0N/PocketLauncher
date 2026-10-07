@@ -15,6 +15,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import com.example.pocketlauncher.input.PocketButton
 import com.example.pocketlauncher.theme.PocketBorder
@@ -45,6 +48,9 @@ fun InputTestScreen(
     onBack: () -> Unit = {},
 ) {
     val listState = rememberLazyListState()
+    val configuration = LocalConfiguration.current
+    val density = LocalDensity.current.density
+    val view = LocalView.current
     BackHandler(onBack = onBack)
 
     // Auto-scroll to latest event
@@ -67,13 +73,7 @@ fun InputTestScreen(
         )
 
         Spacer(Modifier.height(4.dp))
-        Text(
-            text  = "Press any button on the controller",
-            style = MaterialTheme.typography.bodySmall,
-            color = PocketWhiteDim,
-        )
-
-        Spacer(Modifier.height(24.dp))
+        Text(\n            text  = "Press any button on the controller",\n            style = MaterialTheme.typography.bodySmall,\n            color = PocketWhiteDim,\n        )\n        Spacer(Modifier.height(4.dp))\n        Text(\n            text = "VIEW ${view.width}×${view.height}px  •  LOGICAL ${configuration.screenWidthDp}×${configuration.screenHeightDp}dp  •  DENSITY ${String.format(\"%.2f\", density)}x",\n            style = MaterialTheme.typography.labelSmall,\n            color = PocketWhiteMuted,\n        )\n\n        Spacer(Modifier.height(24.dp))
         HorizontalDivider(color = PocketBorder, thickness = 1.dp)
         Spacer(Modifier.height(24.dp))
 
