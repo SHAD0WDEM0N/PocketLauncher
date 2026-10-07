@@ -37,7 +37,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.pocketlauncher.library.GameEntry
 import com.example.pocketlauncher.scraper.ScrapeCandidate
-import com.example.pocketlauncher.theme.MaterialTheme.colorScheme.primary
 import com.example.pocketlauncher.theme.PocketWhiteMuted
 import com.example.pocketlauncher.ui.common.ConsoleMenuScreen
 import com.example.pocketlauncher.ui.common.pocketLayoutMetrics
