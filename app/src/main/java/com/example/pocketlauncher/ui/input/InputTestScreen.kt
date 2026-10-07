@@ -12,9 +12,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.example.pocketlauncher.input.PocketButton
-import com.example.pocketlauncher.theme.PocketAmber
 import com.example.pocketlauncher.theme.PocketBorder
 import com.example.pocketlauncher.theme.PocketGreen
 import com.example.pocketlauncher.theme.PocketSurface
@@ -50,7 +50,7 @@ fun InputTestScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(Color.Transparent)
             .padding(horizontal = 32.dp),
     ) {
         Spacer(Modifier.height(48.dp))
@@ -133,12 +133,12 @@ private fun ButtonGrid(currentlyHeld: Set<PocketButton>) {
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
                             .background(
-                                color = if (held) PocketAmber else PocketSurface,
+                                color = if (held) MaterialTheme.colorScheme.primary else PocketSurface,
                                 shape = androidx.compose.foundation.shape.RoundedCornerShape(4.dp),
                             )
                             .border(
                                 width = 1.dp,
-                                color = if (held) PocketAmber else PocketBorder,
+                                color = if (held) MaterialTheme.colorScheme.primary else PocketBorder,
                                 shape = androidx.compose.foundation.shape.RoundedCornerShape(4.dp),
                             )
                             .padding(horizontal = 10.dp, vertical = 6.dp),

@@ -37,7 +37,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.pocketlauncher.library.GameEntry
 import com.example.pocketlauncher.scraper.ScrapeCandidate
-import com.example.pocketlauncher.theme.PocketAmber
 import com.example.pocketlauncher.theme.PocketWhiteMuted
 import com.example.pocketlauncher.ui.common.ConsoleMenuScreen
 import com.example.pocketlauncher.ui.common.pocketLayoutMetrics
@@ -89,7 +88,7 @@ fun ScrapeMatchScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(Color.Transparent)
             .padding(horizontal = metrics.horizontalPadding),
     ) {
         Spacer(Modifier.height(metrics.topPadding))
@@ -117,7 +116,7 @@ fun ScrapeMatchScreen(
                 Text(
                     text = "SEARCHING THEGAMESDB...",
                     style = MaterialTheme.typography.bodyLarge,
-                    color = PocketAmber,
+                    color = MaterialTheme.colorScheme.primary,
                 )
             }
 

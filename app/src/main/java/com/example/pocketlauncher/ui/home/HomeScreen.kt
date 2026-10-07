@@ -91,7 +91,7 @@ fun HomeScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(Color.Transparent)
             .padding(horizontal = metrics.horizontalPadding),
     ) {
         Spacer(Modifier.height(metrics.topPadding))
@@ -173,7 +173,7 @@ private fun ConsoleCard(
     onClick: () -> Unit,
 ) {
     val cardBackground = MaterialTheme.colorScheme.background
-    val cardBorder = if (selected) Color.White else PocketWhiteMuted.copy(alpha = 0.36f)
+    val cardBorder = if (selected) MaterialTheme.colorScheme.primary else PocketWhiteMuted.copy(alpha = 0.36f)
     val foreground = MaterialTheme.colorScheme.onBackground
 
     Column(

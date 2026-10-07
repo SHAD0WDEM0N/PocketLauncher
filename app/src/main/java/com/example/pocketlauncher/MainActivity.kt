@@ -12,6 +12,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -19,6 +20,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import com.example.pocketlauncher.theme.PocketBackground
 import com.example.pocketlauncher.theme.PocketLauncherTheme
 
 class MainActivity : ComponentActivity() {
@@ -48,31 +51,41 @@ class MainActivity : ComponentActivity() {
         hideSystemUI()
 
         setContent {
-            PocketLauncherTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background,
-                ) {
-                    val uiState by viewModel.uiState.collectAsState()
+            val uiState by viewModel.uiState.collectAsState()
 
-                    LaunchedEffect(uiState.folderPickerRequested) {
-                        if (uiState.folderPickerRequested) {
-                            folderPickerLauncher.launch(null)
-                            viewModel.onFolderPickerLaunched()
-                        }
-                    }
-
-                    LaunchedEffect(uiState.systemSettingsRequested) {
-                        if (uiState.systemSettingsRequested) {
-                            startActivity(Intent(Settings.ACTION_SETTINGS))
-                            viewModel.onSystemSettingsLaunched()
-                        }
-                    }
-
-                    MainNavigation(
-                        uiState = uiState,
-                        viewModel = viewModel,
+            PocketLauncherTheme(
+                mode = uiState.themeMode,
+                accent = uiState.themeAccent,
+            ) {
+                Box(modifier = Modifier.fillMaxSize()) {
+                    PocketBackground(
+                        style = uiState.backgroundStyle,
+                        modifier = Modifier.fillMaxSize(),
                     )
+
+                    Surface(
+                        modifier = Modifier.fillMaxSize(),
+                        color = Color.Transparent,
+                    ) {
+                        LaunchedEffect(uiState.folderPickerRequested) {
+                            if (uiState.folderPickerRequested) {
+                                folderPickerLauncher.launch(null)
+                                viewModel.onFolderPickerLaunched()
+                            }
+                        }
+
+                        LaunchedEffect(uiState.systemSettingsRequested) {
+                            if (uiState.systemSettingsRequested) {
+                                startActivity(Intent(Settings.ACTION_SETTINGS))
+                                viewModel.onSystemSettingsLaunched()
+                            }
+                        }
+
+                        MainNavigation(
+                            uiState = uiState,
+                            viewModel = viewModel,
+                        )
+                    }
                 }
             }
         }

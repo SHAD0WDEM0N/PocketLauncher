@@ -15,6 +15,7 @@ import com.example.pocketlauncher.ui.settings.FrontEndSettingsScreen
 import com.example.pocketlauncher.ui.settings.SettingsScreen
 import com.example.pocketlauncher.ui.settings.ScraperSettingsScreen
 import com.example.pocketlauncher.ui.settings.SystemManagerScreen
+import com.example.pocketlauncher.ui.settings.ThemeSettingsScreen
 
 @Composable
 fun MainNavigation(
@@ -118,8 +119,19 @@ fun MainNavigation(
 
         Screen.FRONT_END_SETTINGS -> FrontEndSettingsScreen(
             selectedIndex = uiState.menuIndex,
+            themeSummary = "${uiState.themeMode.displayName} / ${uiState.themeAccent.displayName}",
             touchMode = uiState.inputUiMode == InputUiMode.TOUCH,
             onItemClick = viewModel::onMenuItemTouch,
+            onBack = viewModel::onTouchBack,
+        )
+
+        Screen.THEME_SETTINGS -> ThemeSettingsScreen(
+            mode = uiState.themeMode,
+            accent = uiState.themeAccent,
+            background = uiState.backgroundStyle,
+            selectedIndex = uiState.menuIndex,
+            touchMode = uiState.inputUiMode == InputUiMode.TOUCH,
+            onItemClick = viewModel::onThemeItemTouch,
             onBack = viewModel::onTouchBack,
         )
 
