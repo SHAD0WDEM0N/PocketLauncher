@@ -24,7 +24,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
-import com.example.pocketlauncher.theme.PocketAmber
+import com.example.pocketlauncher.theme.MaterialTheme.colorScheme.primary
 import com.example.pocketlauncher.theme.PocketWhiteMuted
 import com.example.pocketlauncher.ui.common.pocketLayoutMetrics
 
@@ -106,7 +106,7 @@ fun ScraperSettingsScreen(
                 else -> "READY  ·  CHOOSE A SCRAPE ACTION"
             },
             style = MaterialTheme.typography.bodyMedium,
-            color = if (running) PocketAmber else MaterialTheme.colorScheme.onBackground,
+            color = if (running) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground,
         )
 
         Spacer(Modifier.height(8.dp))
@@ -136,10 +136,10 @@ private fun ScrapeActionRow(
     onTap: () -> Unit,
 ) {
     val border = when {
-        selected -> PocketAmber
+        selected -> MaterialTheme.colorScheme.primary
         else -> PocketWhiteMuted.copy(alpha = 0.35f)
     }
-    val background = if (selected) PocketAmber.copy(alpha = 0.10f) else Color.Transparent
+    val background = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.10f) else Color.Transparent
     val textColor = when {
         !enabled -> PocketWhiteMuted.copy(alpha = 0.45f)
         selected -> MaterialTheme.colorScheme.onBackground
@@ -161,7 +161,7 @@ private fun ScrapeActionRow(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 text = if (selected) ">" else " ",
-                color = PocketAmber,
+                color = MaterialTheme.colorScheme.primary,
                 style = MaterialTheme.typography.labelMedium,
                 modifier = Modifier.width(20.dp),
             )
