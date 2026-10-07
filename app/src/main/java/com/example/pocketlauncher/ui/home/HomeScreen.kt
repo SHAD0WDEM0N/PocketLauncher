@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -129,7 +130,7 @@ fun HomeScreen(
 
         LazyRow(
             state = listState,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = if (menuItems.size <= 4) Arrangement.SpaceBetween else Arrangement.spacedBy(8.dp),
             modifier = Modifier.fillMaxWidth(),
         ) {
             itemsIndexed(menuItems) { index, label ->
@@ -174,6 +175,7 @@ private fun ConsoleCard(
 ) {
     val cardBorder = if (selected) MaterialTheme.colorScheme.primary else PocketWhiteMuted.copy(alpha = 0.36f)
     val foreground = MaterialTheme.colorScheme.onBackground
+    val interactionSource = remember(label) { MutableInteractionSource() }
 
     Column(
         modifier = Modifier
@@ -186,7 +188,11 @@ private fun ConsoleCard(
                 shape = RoundedCornerShape(3.dp)
                 clip = false
             }
-            .clickable(onClick = onClick)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick,
+            )
             .background(Color.Transparent)
             .border(if (selected) 2.dp else 1.dp, cardBorder)
             .padding(10.dp),
@@ -221,7 +227,6 @@ private fun ConsoleCard(
         } else {
             HardwareRender(
                 label = label,
-                selected = selected,
                 modifier = Modifier
                     .align(Alignment.CenterHorizontally)
                     .size(width = 124.dp, height = 92.dp),
@@ -388,13 +393,13 @@ private fun MetadataCell(
 @Composable
 private fun HardwareRender(
     label: String,
-    selected: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    val ink = if (selected) Color(0xFF202020) else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.92f)
-    val mid = if (selected) Color(0xFF8F8F8B) else PocketWhiteDim.copy(alpha = 0.78f)
-    val light = if (selected) Color(0xFFC5C4BE) else PocketWhiteDim.copy(alpha = 0.40f)
-    val screen = if (selected) Color(0xFFB8C39B) else PocketGreen.copy(alpha = 0.50f)
+    // Artwork never owns selection state. The card border is the single focus cue.
+    val ink = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.92f)
+    val mid = PocketWhiteDim.copy(alpha = 0.78f)
+    val light = PocketWhiteDim.copy(alpha = 0.40f)
+    val screen = PocketGreen.copy(alpha = 0.50f)
 
     Canvas(modifier = modifier) {
         val w = size.width
