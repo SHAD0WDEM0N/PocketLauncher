@@ -9,7 +9,6 @@ fun SettingsScreen(
     selectedIndex: Int,
     touchMode: Boolean = false,
     onItemClick: (Int) -> Unit = {},
-    onRemove: () -> Unit = {},
     onBack: () -> Unit = {},
 ) {
     ConsoleMenuScreen(
@@ -111,6 +110,7 @@ fun CoreDownloadsScreen(
     status: String,
     touchMode: Boolean = false,
     onItemClick: (Int) -> Unit = {},
+    onRemove: () -> Unit = {},
     onBack: () -> Unit = {},
 ) {
     val label = when {
@@ -127,6 +127,9 @@ fun CoreDownloadsScreen(
         touchMode = touchMode,
         primaryControllerLabel = if (installed) "A  VERIFY / LOAD" else "A  DOWNLOAD",
         primaryTouchLabel = if (installed) "VERIFY / LOAD" else "DOWNLOAD",
+        secondaryControllerLabel = if (installed) "X  REMOVE" else null,
+        secondaryTouchLabel = if (installed) "REMOVE" else null,
+        onSecondaryAction = if (installed) onRemove else null,
         footer = if (installed) {
             "A  VERIFY / LOAD     X  REMOVE     B  BACK"
         } else {
