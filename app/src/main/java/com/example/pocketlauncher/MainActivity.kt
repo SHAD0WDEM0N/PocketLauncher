@@ -88,14 +88,16 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
-        if (viewModel.onKeyEvent(event, pressed = true)) return true
-        return super.onKeyDown(keyCode, event)
-    }
-
-    override fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean {
-        if (viewModel.onKeyEvent(event, pressed = false)) return true
-        return super.onKeyUp(keyCode, event)
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        when (event.action) {
+            KeyEvent.ACTION_DOWN -> {
+                if (viewModel.onKeyEvent(event, pressed = true)) return true
+            }
+            KeyEvent.ACTION_UP -> {
+                if (viewModel.onKeyEvent(event, pressed = false)) return true
+            }
+        }
+        return super.dispatchKeyEvent(event)
     }
 
     private fun hideSystemUI() {
