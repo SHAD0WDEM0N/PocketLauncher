@@ -97,4 +97,11 @@ class EmulationPreferencesStore(context: Context) {
     fun setOnScreenMenuIconEnabled(enabled: Boolean) {
         prefs.edit().putBoolean("onscreen_menu_icon", enabled).apply()
     }
+
+    fun onScreenControlsEnabled(): Boolean =
+        prefs.getBoolean("onscreen_controls", false)
+
+    fun setOnScreenControlsEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean("onscreen_controls", enabled).apply()
+    }
 }
