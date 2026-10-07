@@ -1,5 +1,6 @@
 package com.example.pocketlauncher.theme
 
+import android.graphics.BitmapFactory
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -14,15 +15,17 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.LocalContext
 import com.example.pocketlauncher.R
 import kotlin.math.cos
 import kotlin.math.sin
@@ -32,12 +35,10 @@ fun PocketBackground(
     style: PocketBackgroundStyle,
     modifier: Modifier = Modifier,
 ) {
-    val background = MaterialTheme.colorScheme.background
-
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(background),
+            .background(MaterialTheme.colorScheme.background),
     ) {
         when (style) {
             PocketBackgroundStyle.SOLID -> Unit
@@ -54,13 +55,22 @@ private fun ThemeArtwork(
     resourceId: Int,
     alpha: Float,
 ) {
-    Image(
-        painter = painterResource(resourceId),
-        contentDescription = null,
-        contentScale = ContentScale.Crop,
-        alpha = alpha,
-        modifier = Modifier.fillMaxSize(),
-    )
+    val context = LocalContext.current
+    val bitmap = remember(resourceId) {
+        runCatching {
+            BitmapFactory.decodeResource(context.resources, resourceId)?.asImageBitmap()
+        }.getOrNull()
+    }
+
+    if (bitmap != null) {
+        Image(
+            bitmap = bitmap,
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            alpha = alpha,
+            modifier = Modifier.fillMaxSize(),
+        )
+    }
 }
 
 @Composable
@@ -83,6 +93,7 @@ private fun PspWaveBackground() {
         Canvas(Modifier.fillMaxSize()) {
             val w = size.width
             val h = size.height
+            if (w <= 0f || h <= 0f) return@Canvas
             val radians = phase * 6.28318f
 
             repeat(5) { band ->
@@ -97,14 +108,13 @@ private fun PspWaveBackground() {
                     val y = yBase +
                         sin((index / 11f) + radians * speed + offset) * amplitude +
                         sin((index / 24f) - radians * 0.55f + offset) * amplitude * 0.35f
-
                     if (index == 0) path.moveTo(x, y) else path.lineTo(x, y)
                 }
 
                 drawPath(
                     path = path,
                     brush = Brush.horizontalGradient(
-                        colors = listOf(
+                        listOf(
                             Color.Transparent,
                             accent.copy(alpha = 0.28f),
                             Color.White.copy(alpha = 0.34f),
@@ -112,19 +122,7 @@ private fun PspWaveBackground() {
                             Color.Transparent,
                         ),
                     ),
-                    style = Stroke(
-                        width = 8f + band * 4f,
-                        cap = StrokeCap.Round,
-                    ),
-                )
-
-                drawPath(
-                    path = path,
-                    color = Color.White.copy(alpha = 0.08f),
-                    style = Stroke(
-                        width = 20f + band * 5f,
-                        cap = StrokeCap.Round,
-                    ),
+                    style = Stroke(width = 8f + band * 4f, cap = StrokeCap.Round),
                 )
             }
         }
@@ -151,95 +149,55 @@ private fun Ps2OrbBackground() {
         Canvas(Modifier.fillMaxSize()) {
             val w = size.width
             val h = size.height
+            if (w <= 0f || h <= 0f) return@Canvas
             val t = phase * 6.28318f
             val minSide = minOf(w, h)
 
-            val orbs = listOf(
-                Triple(
-                    Offset(
-                        w * (0.19f + cos(t) * 0.10f),
-                        h * (0.36f + sin(t * 0.72f) * 0.11f),
-                    ),
-                    minSide * 0.105f,
-                    0.25f,
-                ),
-                Triple(
-                    Offset(
-                        w * (0.72f + cos(t * 0.74f + 2.1f) * 0.12f),
-                        h * (0.31f + sin(t * 0.91f + 1.2f) * 0.13f),
-                    ),
-                    minSide * 0.145f,
-                    0.23f,
-                ),
-                Triple(
-                    Offset(
-                        w * (0.53f + cos(t * 1.16f + 4.2f) * 0.16f),
-                        h * (0.68f + sin(t * 0.84f + 3.4f) * 0.10f),
-                    ),
-                    minSide * 0.070f,
-                    0.30f,
-                ),
-                Triple(
-                    Offset(
-                        w * (0.39f + cos(t * 1.35f + 0.8f) * 0.18f),
-                        h * (0.20f + sin(t * 1.12f + 2.8f) * 0.07f),
-                    ),
-                    minSide * 0.040f,
-                    0.34f,
-                ),
+            val centers = listOf(
+                Offset(w * (0.18f + cos(t) * 0.08f), h * (0.34f + sin(t * 0.72f) * 0.09f)),
+                Offset(w * (0.73f + cos(t * 0.76f + 2.1f) * 0.10f), h * (0.30f + sin(t * 0.90f + 1.1f) * 0.11f)),
+                Offset(w * (0.52f + cos(t * 1.12f + 4.0f) * 0.13f), h * (0.68f + sin(t * 0.82f + 3.2f) * 0.08f)),
+                Offset(w * (0.38f + cos(t * 1.28f + 0.7f) * 0.14f), h * (0.20f + sin(t * 1.06f + 2.7f) * 0.06f)),
             )
+            val radii = listOf(0.10f, 0.14f, 0.07f, 0.04f)
 
-            orbs.forEach { (center, radius, alpha) ->
+            centers.forEachIndexed { index, center ->
+                val radius = minSide * radii[index]
                 drawCircle(
-                    brush = Brush.radialGradient(
-                        colors = listOf(
-                            Color.White.copy(alpha = alpha * 0.72f),
-                            accent.copy(alpha = alpha),
-                            Color(0xFF11152F).copy(alpha = alpha * 0.88f),
-                            Color.Transparent,
-                        ),
-                        center = Offset(
-                            center.x - radius * 0.24f,
-                            center.y - radius * 0.28f,
-                        ),
-                        radius = radius * 1.20f,
-                    ),
+                    color = Color(0xFF6F76FF).copy(alpha = 0.18f),
                     radius = radius,
                     center = center,
                 )
                 drawCircle(
-                    color = Color.White.copy(alpha = alpha * 0.55f),
-                    radius = radius * 0.10f,
-                    center = Offset(
-                        center.x - radius * 0.34f,
-                        center.y - radius * 0.38f,
-                    ),
+                    color = accent.copy(alpha = 0.26f),
+                    radius = radius,
+                    center = center,
+                    style = Stroke(width = 2.4f),
                 )
                 drawCircle(
-                    color = accent.copy(alpha = alpha * 0.48f),
-                    radius = radius * 1.08f,
-                    center = center,
-                    style = Stroke(width = 2.2f),
+                    color = Color.White.copy(alpha = 0.18f),
+                    radius = radius * 0.12f,
+                    center = Offset(center.x - radius * 0.32f, center.y - radius * 0.32f),
                 )
             }
 
             repeat(3) { line ->
-                val y = h * (0.38f + line * 0.12f)
+                val y = h * (0.40f + line * 0.11f)
                 val path = Path().apply {
-                    moveTo(-w * 0.08f, y)
+                    moveTo(-w * 0.05f, y)
                     cubicTo(
-                        w * 0.24f,
-                        y - h * (0.13f + line * 0.015f),
-                        w * 0.66f,
-                        y + h * 0.10f,
-                        w * 1.08f,
-                        y - h * 0.04f,
+                        w * 0.28f,
+                        y - h * 0.10f,
+                        w * 0.68f,
+                        y + h * 0.08f,
+                        w * 1.05f,
+                        y - h * 0.03f,
                     )
                 }
                 drawPath(
-                    path,
-                    accent.copy(alpha = 0.08f + line * 0.015f),
-                    style = Stroke(width = 2f + line),
+                    path = path,
+                    color = accent.copy(alpha = 0.07f),
+                    style = Stroke(width = 2f + line, cap = StrokeCap.Round),
                 )
             }
         }
@@ -266,49 +224,44 @@ private fun XboxEnergyBackground() {
         Canvas(Modifier.fillMaxSize()) {
             val w = size.width
             val h = size.height
+            if (w <= 0f || h <= 0f) return@Canvas
             val t = phase * 6.28318f
-            val pulse = 0.72f + ((sin(t) + 1f) * 0.14f)
-
+            val pulse = 0.68f + ((sin(t) + 1f) * 0.12f)
             val center = Offset(
-                w * (0.50f + cos(t * 0.5f) * 0.025f),
-                h * (0.58f + sin(t * 0.7f) * 0.018f),
+                w * (0.50f + cos(t * 0.45f) * 0.02f),
+                h * (0.58f + sin(t * 0.60f) * 0.02f),
             )
             val radius = minOf(w, h)
 
             drawCircle(
-                brush = Brush.radialGradient(
-                    colors = listOf(
-                        green.copy(alpha = 0.14f * pulse),
-                        green.copy(alpha = 0.045f * pulse),
-                        Color.Transparent,
-                    ),
-                    center = center,
-                    radius = radius * 0.63f,
-                ),
-                radius = radius * 0.63f,
+                color = green.copy(alpha = 0.035f * pulse),
+                radius = radius * 0.58f,
                 center = center,
+            )
+            drawCircle(
+                color = green.copy(alpha = 0.06f * pulse),
+                radius = radius * 0.34f,
+                center = center,
+                style = Stroke(width = 6f),
             )
 
             repeat(4) { arc ->
                 val baseY = h * (0.34f + arc * 0.10f)
                 val path = Path().apply {
-                    moveTo(-w * 0.08f, baseY + sin(t + arc) * h * 0.04f)
+                    moveTo(-w * 0.06f, baseY + sin(t + arc) * h * 0.035f)
                     cubicTo(
                         w * 0.25f,
-                        baseY - h * (0.22f - arc * 0.025f),
+                        baseY - h * (0.18f - arc * 0.02f),
                         w * 0.72f,
-                        baseY + h * (0.18f - arc * 0.015f),
-                        w * 1.08f,
-                        baseY + sin(t * 0.7f + arc) * h * 0.05f,
+                        baseY + h * (0.15f - arc * 0.015f),
+                        w * 1.06f,
+                        baseY + sin(t * 0.68f + arc) * h * 0.04f,
                     )
                 }
                 drawPath(
                     path = path,
-                    color = green.copy(alpha = 0.08f + arc * 0.025f),
-                    style = Stroke(
-                        width = 3f + arc * 1.3f,
-                        cap = StrokeCap.Round,
-                    ),
+                    color = green.copy(alpha = 0.07f + arc * 0.018f),
+                    style = Stroke(width = 3f + arc, cap = StrokeCap.Round),
                 )
             }
         }
@@ -335,62 +288,42 @@ private fun PocketHexBackground() {
         Canvas(Modifier.fillMaxSize()) {
             val w = size.width
             val h = size.height
-            val cell = minOf(w, h) * 0.105f
+            if (w <= 0f || h <= 0f) return@Canvas
+
+            val cell = (minOf(w, h) * 0.12f).coerceAtLeast(36f)
             val rowHeight = cell * 0.86f
-            val sweepX = (phase * 1.55f - 0.25f) * w
+            val columns = (w / cell).toInt().coerceIn(6, 24) + 4
+            val rows = (h / rowHeight).toInt().coerceIn(4, 18) + 4
+            val sweepX = phase * (w + cell * 8f) - cell * 4f
 
-            var row = -2
-            var y = -rowHeight
-            while (y < h + rowHeight) {
-                val rowDirection = if (row % 2 == 0) 1f else -1f
-                val movement = phase * cell * 2f * rowDirection
-                val stagger = if (row % 2 == 0) 0f else cell * 0.5f
-                var x = -cell * 3f + stagger + movement
+            repeat(rows) { rowIndex ->
+                val y = (rowIndex - 2) * rowHeight
+                val direction = if (rowIndex % 2 == 0) 1f else -1f
+                val shift = (phase * cell * 1.8f * direction)
+                val stagger = if (rowIndex % 2 == 0) 0f else cell * 0.5f
 
-                while (x < w + cell * 2f) {
-                    val r = cell * 0.38f
-                    val points = Array(6) { index ->
-                        val angle = Math.toRadians((60 * index - 30).toDouble())
-                        Offset(
-                            x + cos(angle).toFloat() * r,
-                            y + sin(angle).toFloat() * r,
-                        )
+                repeat(columns) { columnIndex ->
+                    val x = (columnIndex - 2) * cell + stagger + shift
+                    val radius = cell * 0.36f
+                    val path = Path()
+
+                    repeat(6) { pointIndex ->
+                        val angle = Math.toRadians((60 * pointIndex - 30).toDouble())
+                        val px = x + cos(angle).toFloat() * radius
+                        val py = y + sin(angle).toFloat() * radius
+                        if (pointIndex == 0) path.moveTo(px, py) else path.lineTo(px, py)
                     }
+                    path.close()
 
-                    val distanceFromSweep = kotlin.math.abs(x - sweepX)
-                    val glow = (1f - (distanceFromSweep / (cell * 3.2f)))
+                    val glow = (1f - kotlin.math.abs(x - sweepX) / (cell * 3f))
                         .coerceIn(0f, 1f)
-
-                    for (index in points.indices) {
-                        drawLine(
-                            color = accent.copy(
-                                alpha = 0.07f + glow * 0.23f,
-                            ),
-                            start = points[index],
-                            end = points[(index + 1) % points.size],
-                            strokeWidth = 1.5f + glow * 2.2f,
-                        )
-                    }
-                    x += cell
+                    drawPath(
+                        path = path,
+                        color = accent.copy(alpha = 0.07f + glow * 0.18f),
+                        style = Stroke(width = 1.4f + glow * 1.8f),
+                    )
                 }
-
-                row++
-                y += rowHeight
             }
-
-            drawRect(
-                brush = Brush.horizontalGradient(
-                    colors = listOf(
-                        Color.Transparent,
-                        accent.copy(alpha = 0.02f),
-                        accent.copy(alpha = 0.14f),
-                        accent.copy(alpha = 0.02f),
-                        Color.Transparent,
-                    ),
-                    startX = sweepX - cell * 4f,
-                    endX = sweepX + cell * 4f,
-                ),
-            )
         }
     }
 }
