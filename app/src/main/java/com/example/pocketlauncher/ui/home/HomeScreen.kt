@@ -28,6 +28,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
@@ -47,6 +48,9 @@ import com.example.pocketlauncher.theme.PocketGreen
 import com.example.pocketlauncher.theme.PocketWhiteDim
 import com.example.pocketlauncher.theme.PocketWhiteMuted
 import com.example.pocketlauncher.ui.common.pocketLayoutMetrics
+import com.example.pocketlauncher.ui.common.PocketAction
+import com.example.pocketlauncher.ui.common.PocketActionBar
+import kotlinx.coroutines.flow.distinctUntilChanged
 
 @Composable
 fun HomeScreen(
@@ -55,7 +59,10 @@ fun HomeScreen(
     menuItems: List<String>,
     manufacturers: Map<String, String> = emptyMap(),
     releaseYears: Map<String, String> = emptyMap(),
+    touchMode: Boolean = false,
     onItemClick: (Int) -> Unit = {},
+    onIndexChange: (Int) -> Unit = {},
+    onSelect: () -> Unit = {},
 ) {
     val metrics = pocketLayoutMetrics()
     val safeIndex = selectedIndex.coerceIn(0, (menuItems.size - 1).coerceAtLeast(0))
@@ -67,6 +74,17 @@ fun HomeScreen(
             listState.animateScrollToItem(safeIndex)
         }
     }
+
+    LaunchedEffect(listState, safeIndex, menuItems.size) {
+        snapshotFlow { listState.firstVisibleItemIndex }
+            .distinctUntilChanged()
+            .collect { index ->
+                if (menuItems.isNotEmpty() && index in menuItems.indices && index != safeIndex) {
+                    onIndexChange(index)
+                }
+            }
+    }
+
 
     Column(
         modifier = Modifier
@@ -131,12 +149,15 @@ fun HomeScreen(
 
         Spacer(Modifier.weight(1f))
 
-        Text(
-            text = "◀  ▶  BROWSE    A  SELECT",
-            style = MaterialTheme.typography.labelSmall.merge(
-                TextStyle(fontSize = metrics.hintTextSize)
+        PocketActionBar(
+            touchMode = touchMode,
+            actions = listOf(
+                PocketAction(
+                    controllerLabel = "A  SELECT",
+                    touchLabel = "SELECT",
+                    onClick = onSelect,
+                ),
             ),
-            color = PocketWhiteMuted,
         )
 
         Spacer(Modifier.height(24.dp))
