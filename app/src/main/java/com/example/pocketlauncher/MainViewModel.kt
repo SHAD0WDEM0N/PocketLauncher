@@ -352,7 +352,7 @@ class MainViewModel(
         }
     }
     private fun handleSettingsInput(button: PocketButton): Boolean {
-        if (moveMenu(button, 4)) return true
+        if (moveMenu(button, 3)) return true
 
         return when (button) {
             PocketButton.A -> {
