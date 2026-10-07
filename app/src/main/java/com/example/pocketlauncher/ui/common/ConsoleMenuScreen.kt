@@ -3,6 +3,7 @@ package com.example.pocketlauncher.ui.common
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -25,6 +26,8 @@ fun ConsoleMenuScreen(
     selectedIndex: Int,
     footer: String = "A  SELECT     B  BACK",
     subtitle: String? = null,
+    onItemClick: (Int) -> Unit = {},
+    onBack: () -> Unit = {},
 ) {
     val metrics = pocketLayoutMetrics()
 
@@ -69,6 +72,7 @@ fun ConsoleMenuScreen(
                 label = label,
                 selected = index == selectedIndex,
                 metrics = metrics,
+                onClick = { onItemClick(index) },
             )
         }
 
@@ -76,13 +80,29 @@ fun ConsoleMenuScreen(
 
         HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
         Spacer(Modifier.height(12.dp))
-        Text(
-            text = footer,
-            style = MaterialTheme.typography.labelSmall.merge(
-                TextStyle(fontSize = metrics.hintTextSize)
-            ),
-            color = PocketWhiteMuted,
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = footer,
+                modifier = Modifier.weight(1f),
+                style = MaterialTheme.typography.labelSmall.merge(
+                    TextStyle(fontSize = metrics.hintTextSize)
+                ),
+                color = PocketWhiteMuted,
+            )
+            Text(
+                text = "‹ BACK",
+                modifier = Modifier
+                    .clickable(onClick = onBack)
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                style = MaterialTheme.typography.labelSmall.merge(
+                    TextStyle(fontSize = metrics.hintTextSize)
+                ),
+                color = PocketWhiteMuted,
+            )
+        }
         Spacer(Modifier.height(24.dp))
     }
 }
@@ -92,6 +112,7 @@ private fun ConsoleMenuRow(
     label: String,
     selected: Boolean,
     metrics: PocketLayoutMetrics,
+    onClick: () -> Unit,
 ) {
     val alpha by animateFloatAsState(
         targetValue = if (selected) 1f else 0.42f,
@@ -104,6 +125,7 @@ private fun ConsoleMenuRow(
         modifier = Modifier
             .fillMaxWidth()
             .height(metrics.rowHeight)
+            .clickable(onClick = onClick)
             .alpha(alpha),
     ) {
         Text(
