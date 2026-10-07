@@ -123,6 +123,7 @@ data class PocketUiState(
     val selectedStateSummary: String = "Empty",
     val onScreenMenuIconEnabled: Boolean = true,
     val onScreenControlsEnabled: Boolean = false,
+    val physicalControllerInUse: Boolean = false,
     val selectedStateThumbnailPath: String? = null,
     val hasFavourites: Boolean = false,
 )
@@ -183,6 +184,9 @@ class MainViewModel(
         }
 
         if (_uiState.value.screen == Screen.EMULATION) {
+            if (!_uiState.value.physicalControllerInUse) {
+                _uiState.update { it.copy(physicalControllerInUse = true) }
+            }
             return handleEmulationInput(button, pressed)
         }
 
@@ -1224,6 +1228,7 @@ class MainViewModel(
                     selectedStateSlot = 0,
                     selectedStateSummary = saveStateManager.slotSummary(game, 0),
                     selectedStateThumbnailPath = saveStateManager.thumbnailPath(game, 0),
+                    physicalControllerInUse = false,
                     videoScaleMode = emulationPreferences.scaleMode(game.platform.name),
                     videoFilterMode = emulationPreferences.filterMode(game.platform.name),
                     videoEffectMode = emulationPreferences.effectMode(game.platform.name),
@@ -1343,6 +1348,7 @@ class MainViewModel(
 
     fun onTouchControl(button: PocketButton, pressed: Boolean) {
         if (_uiState.value.screen != Screen.EMULATION || _uiState.value.emulationMenuOpen) return
+        if (_uiState.value.physicalControllerInUse) return
         handleEmulationInput(button, pressed)
     }
 
