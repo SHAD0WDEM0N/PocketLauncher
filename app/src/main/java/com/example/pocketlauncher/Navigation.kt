@@ -14,7 +14,8 @@ import com.example.pocketlauncher.ui.settings.CoreDownloadsScreen
 import com.example.pocketlauncher.ui.settings.FrontEndSettingsScreen
 import com.example.pocketlauncher.ui.settings.SettingsScreen
 import com.example.pocketlauncher.ui.settings.ScraperSettingsScreen
-import com.example.pocketlauncher.ui.settings.SystemManagerScreen\nimport com.example.pocketlauncher.ui.settings.ThemeSettingsScreen
+import com.example.pocketlauncher.ui.settings.SystemManagerScreen
+import com.example.pocketlauncher.ui.settings.ThemeSettingsScreen
 
 @Composable
 fun MainNavigation(
