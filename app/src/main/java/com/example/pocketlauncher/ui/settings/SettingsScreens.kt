@@ -28,6 +28,7 @@ fun SettingsScreen(
 @Composable
 fun FrontEndSettingsScreen(
     selectedIndex: Int,
+    themeSummary: String = "Default",
     touchMode: Boolean = false,
     onItemClick: (Int) -> Unit = {},
     onBack: () -> Unit = {},
@@ -36,7 +37,7 @@ fun FrontEndSettingsScreen(
         title = "FRONT END SETTINGS",
         subtitle = "PocketLauncher appearance, artwork and controller options.",
         items = listOf(
-            "Theme  ·  Default",
+            "Theme  ·  $themeSummary",
             "Artwork & Scraping  ·  TheGamesDB",
             "Controller / Input Test",
         ),
