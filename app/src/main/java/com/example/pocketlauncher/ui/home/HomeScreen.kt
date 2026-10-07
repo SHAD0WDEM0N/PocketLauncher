@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -37,6 +38,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
@@ -76,10 +78,10 @@ fun HomeScreen(
     }
 
     LaunchedEffect(listState, safeIndex, menuItems.size) {
-        snapshotFlow { listState.firstVisibleItemIndex }
+        snapshotFlow { listState.isScrollInProgress to listState.firstVisibleItemIndex }
             .distinctUntilChanged()
-            .collect { index ->
-                if (menuItems.isNotEmpty() && index in menuItems.indices && index != safeIndex) {
+            .collect { (scrolling, index) ->
+                if (touchMode && scrolling && menuItems.isNotEmpty() && index in menuItems.indices && index != safeIndex) {
                     onIndexChange(index)
                 }
             }
@@ -170,18 +172,24 @@ private fun ConsoleCard(
     selected: Boolean,
     onClick: () -> Unit,
 ) {
-    val selectedBackground = Color(0xFFECE9E2)
-    val cardBackground = if (selected) selectedBackground else MaterialTheme.colorScheme.background
-    val cardBorder = if (selected) selectedBackground else PocketWhiteMuted.copy(alpha = 0.45f)
-    val foreground = if (selected) Color(0xFF171717) else MaterialTheme.colorScheme.onBackground
+    val cardBackground = MaterialTheme.colorScheme.background
+    val cardBorder = if (selected) Color.White else PocketWhiteMuted.copy(alpha = 0.36f)
+    val foreground = MaterialTheme.colorScheme.onBackground
 
     Column(
         modifier = Modifier
             .width(190.dp)
             .height(182.dp)
+            .graphicsLayer {
+                scaleX = if (selected) 1.045f else 1f
+                scaleY = if (selected) 1.045f else 1f
+                shadowElevation = if (selected) 14f else 0f
+                shape = RoundedCornerShape(3.dp)
+                clip = false
+            }
             .clickable(onClick = onClick)
             .background(cardBackground)
-            .border(1.dp, cardBorder)
+            .border(if (selected) 2.dp else 1.dp, cardBorder)
             .padding(10.dp),
     ) {
         Text(
