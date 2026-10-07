@@ -3,6 +3,7 @@ package com.example.pocketlauncher.ui.emulation
 import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -25,6 +26,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.input.pointer.pointerInput
@@ -111,7 +113,8 @@ fun EmulationScreen(
                     .align(if (onScreenControlsEnabled && inputUiMode == InputUiMode.TOUCH) Alignment.TopStart else Alignment.BottomStart)
                     .padding(14.dp)
                     .size(42.dp)
-                    .background(Color.Black.copy(alpha = 0.34f), CircleShape)
+                    .background(Color.White.copy(alpha = 0.10f), CircleShape)
+                    .border(1.5.dp, Color.White.copy(alpha = 0.72f), CircleShape)
                     .pointerInput(Unit) {
                         detectTapGestures(onTap = { onMenuIconClick() })
                     },
@@ -120,7 +123,7 @@ fun EmulationScreen(
                 Text(
                     text = "≡",
                     style = MaterialTheme.typography.titleLarge,
-                    color = Color.White.copy(alpha = 0.72f),
+                    color = Color.White.copy(alpha = 0.96f),
                 )
             }
         }
@@ -401,7 +404,13 @@ private fun TouchControlButton(
     val shape = if (rounded) RoundedCornerShape(18.dp) else CircleShape
     Box(
         modifier = modifier
-            .background(Color.Black.copy(alpha = 0.34f), shape)
+            .graphicsLayer {
+                shadowElevation = 10f
+                this.shape = shape
+                clip = false
+            }
+            .background(Color.White.copy(alpha = 0.10f), shape)
+            .border(1.5.dp, Color.White.copy(alpha = 0.78f), shape)
             .pointerInput(button) {
                 awaitEachGesture {
                     awaitFirstDown(requireUnconsumed = false)
@@ -422,7 +431,7 @@ private fun TouchControlButton(
         Text(
             text = label,
             style = MaterialTheme.typography.labelLarge,
-            color = Color.White.copy(alpha = 0.76f),
+            color = Color.White.copy(alpha = 0.96f),
         )
     }
 }
