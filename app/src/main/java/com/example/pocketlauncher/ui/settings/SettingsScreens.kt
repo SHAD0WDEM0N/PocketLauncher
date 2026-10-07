@@ -7,6 +7,8 @@ import com.example.pocketlauncher.ui.common.ConsoleMenuScreen
 @Composable
 fun SettingsScreen(
     selectedIndex: Int,
+    onItemClick: (Int) -> Unit = {},
+    onBack: () -> Unit = {},
 ) {
     ConsoleMenuScreen(
         title = "SETTINGS",
@@ -16,12 +18,16 @@ fun SettingsScreen(
             "System Settings",
         ),
         selectedIndex = selectedIndex,
+        onItemClick = onItemClick,
+        onBack = onBack,
     )
 }
 
 @Composable
 fun FrontEndSettingsScreen(
     selectedIndex: Int,
+    onItemClick: (Int) -> Unit = {},
+    onBack: () -> Unit = {},
 ) {
     ConsoleMenuScreen(
         title = "FRONT END SETTINGS",
@@ -32,12 +38,16 @@ fun FrontEndSettingsScreen(
             "Controller / Input Test",
         ),
         selectedIndex = selectedIndex,
+        onItemClick = onItemClick,
+        onBack = onBack,
     )
 }
 
 @Composable
 fun EmulatorSettingsScreen(
     selectedIndex: Int,
+    onItemClick: (Int) -> Unit = {},
+    onBack: () -> Unit = {},
     enabledPlatforms: Set<Platform>,
 ) {
     val enabled = Platform.entries
@@ -54,12 +64,16 @@ fun EmulatorSettingsScreen(
             "External Emulators  ·  Next milestone",
         ),
         selectedIndex = selectedIndex,
+        onItemClick = onItemClick,
+        onBack = onBack,
     )
 }
 
 @Composable
 fun SystemManagerScreen(
     selectedIndex: Int,
+    onItemClick: (Int) -> Unit = {},
+    onBack: () -> Unit = {},
     enabledPlatforms: Set<Platform>,
 ) {
     val items = Platform.entries.map { platform ->
@@ -73,6 +87,8 @@ fun SystemManagerScreen(
         items = items,
         selectedIndex = selectedIndex,
         footer = "A  TOGGLE SYSTEM     B  BACK",
+        onItemClick = onItemClick,
+        onBack = onBack,
     )
 }
 
@@ -82,6 +98,8 @@ fun CoreDownloadsScreen(
     installed: Boolean,
     downloading: Boolean,
     status: String,
+    onItemClick: (Int) -> Unit = {},
+    onBack: () -> Unit = {},
 ) {
     val label = when {
         downloading -> "mGBA     DOWNLOADING..."
@@ -99,5 +117,7 @@ fun CoreDownloadsScreen(
         } else {
             "A  DOWNLOAD mGBA     B  BACK"
         },
+        onItemClick = onItemClick,
+        onBack = onBack,
     )
 }
