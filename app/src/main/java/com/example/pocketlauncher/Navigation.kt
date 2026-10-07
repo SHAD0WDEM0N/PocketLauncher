@@ -200,6 +200,8 @@ fun MainNavigation(
         Screen.INPUT_TEST -> InputTestScreen(
             events = uiState.inputEvents,
             currentlyHeld = uiState.currentlyHeld,
+            touchMode = uiState.inputUiMode == InputUiMode.TOUCH,
+            onBack = viewModel::onTouchBack,
         )
     }
 }
