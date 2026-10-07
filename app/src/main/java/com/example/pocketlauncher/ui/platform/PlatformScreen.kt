@@ -9,6 +9,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -312,6 +313,7 @@ private fun CartridgeCard(
     onClick: () -> Unit,
 ) {
     val outerBorder = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
+    val interactionSource = remember(game.uri) { MutableInteractionSource() }
 
     Box(
         modifier = Modifier
@@ -324,7 +326,11 @@ private fun CartridgeCard(
                 shape = RoundedCornerShape(4.dp)
                 clip = false
             }
-            .clickable(onClick = onClick)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick,
+            )
             .background(Color.Transparent)
             .border(if (selected) 2.dp else 1.dp, outerBorder),
         contentAlignment = Alignment.Center,
