@@ -9,6 +9,7 @@ fun SettingsScreen(
     selectedIndex: Int,
     touchMode: Boolean = false,
     onItemClick: (Int) -> Unit = {},
+    onRemove: () -> Unit = {},
     onBack: () -> Unit = {},
 ) {
     ConsoleMenuScreen(
@@ -41,6 +42,7 @@ fun FrontEndSettingsScreen(
             "Controller / Input Test",
         ),
         selectedIndex = selectedIndex,
+        touchMode = touchMode,
         onItemClick = onItemClick,
         onBack = onBack,
     )
@@ -68,6 +70,7 @@ fun EmulatorSettingsScreen(
             "External Emulators  ·  Next milestone",
         ),
         selectedIndex = selectedIndex,
+        touchMode = touchMode,
         onItemClick = onItemClick,
         onBack = onBack,
     )
