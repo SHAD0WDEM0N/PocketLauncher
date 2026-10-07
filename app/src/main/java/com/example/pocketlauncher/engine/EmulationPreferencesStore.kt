@@ -99,7 +99,7 @@ class EmulationPreferencesStore(context: Context) {
     }
 
     fun onScreenControlsEnabled(): Boolean =
-        prefs.getBoolean("onscreen_controls", false)
+        prefs.getBoolean("onscreen_controls", true)
 
     fun setOnScreenControlsEnabled(enabled: Boolean) {
         prefs.edit().putBoolean("onscreen_controls", enabled).apply()
