@@ -56,6 +56,8 @@ enum class ScrapeMode {
     RESCRAPE_ALL,
 }
 
+enum class InputUiMode { CONTROLLER, TOUCH }
+
 enum class Screen {
     HOME,
     PLATFORM,
@@ -125,6 +127,7 @@ data class PocketUiState(
     val onScreenMenuIconEnabled: Boolean = true,
     val onScreenControlsEnabled: Boolean = false,
     val physicalControllerInUse: Boolean = false,
+    val inputUiMode: InputUiMode = InputUiMode.CONTROLLER,
     val selectedStateThumbnailPath: String? = null,
     val hasFavourites: Boolean = false,
 )
@@ -179,6 +182,9 @@ class MainViewModel(
 
     fun onKeyEvent(event: KeyEvent, pressed: Boolean): Boolean {
         val button = PocketInputMapper.map(event) ?: return false
+        if (pressed && _uiState.value.inputUiMode != InputUiMode.CONTROLLER) {
+            _uiState.update { it.copy(inputUiMode = InputUiMode.CONTROLLER) }
+        }
 
         if (_uiState.value.screen == Screen.INPUT_TEST) {
             recordInputEvent(button, pressed)
@@ -1333,6 +1339,7 @@ class MainViewModel(
     }
 
     fun toggleInGameMenuFromTouch() {
+        markTouchUi()
         if (_uiState.value.screen != Screen.EMULATION) return
         emulationInputMask = 0
         PocketEngine.setInputMask(0)
@@ -1349,11 +1356,12 @@ class MainViewModel(
 
     fun onTouchControl(button: PocketButton, pressed: Boolean) {
         if (_uiState.value.screen != Screen.EMULATION || _uiState.value.emulationMenuOpen) return
-        if (_uiState.value.physicalControllerInUse) return
+        markTouchUi()
         handleEmulationInput(button, pressed)
     }
 
     fun onEmulationMenuTouch(index: Int) {
+        markTouchUi()
         if (_uiState.value.screen != Screen.EMULATION || !_uiState.value.emulationMenuOpen) return
         _uiState.update { it.copy(emulationMenuIndex = index, emulationMenuStatus = "") }
 
@@ -1365,10 +1373,51 @@ class MainViewModel(
     }
 
     fun onStateSlotTouch(delta: Int) {
+        markTouchUi()
         if (_uiState.value.screen != Screen.EMULATION || !_uiState.value.emulationMenuOpen) return
         if (_uiState.value.emulationMenuPage != EmulationMenuPage.MAIN) return
         _uiState.update { it.copy(emulationMenuIndex = 3, emulationMenuStatus = "") }
         cycleStateSlot(delta)
+    }
+
+    private fun markTouchUi() {
+        if (_uiState.value.inputUiMode != InputUiMode.TOUCH) {
+            _uiState.update { it.copy(inputUiMode = InputUiMode.TOUCH) }
+        }
+    }
+
+    fun onTouchUiInteraction() {
+        markTouchUi()
+    }
+
+    fun onSelectedGamePlayTouch() {
+        markTouchUi()
+        when (_uiState.value.screen) {
+            Screen.PLATFORM -> handlePlatformInput(PocketButton.A)
+            Screen.RECENTLY_PLAYED -> handleRecentInput(PocketButton.A)
+            Screen.FAVOURITES -> handleFavouriteLibraryInput(PocketButton.A)
+            else -> Unit
+        }
+    }
+
+    fun onSelectedGameOptionsTouch() {
+        markTouchUi()
+        when (_uiState.value.screen) {
+            Screen.PLATFORM -> handlePlatformInput(PocketButton.X)
+            Screen.RECENTLY_PLAYED -> handleRecentInput(PocketButton.X)
+            Screen.FAVOURITES -> handleFavouriteLibraryInput(PocketButton.X)
+            else -> Unit
+        }
+    }
+
+    fun onSelectedGameFavouriteTouch() {
+        markTouchUi()
+        when (_uiState.value.screen) {
+            Screen.PLATFORM -> handlePlatformInput(PocketButton.Y)
+            Screen.RECENTLY_PLAYED -> handleRecentInput(PocketButton.Y)
+            Screen.FAVOURITES -> handleFavouriteLibraryInput(PocketButton.Y)
+            else -> Unit
+        }
     }
 
     private fun hasPhysicalControllerConnected(): Boolean =
@@ -1380,18 +1429,28 @@ class MainViewModel(
         }
 
     fun onHomeItemTouch(index: Int) {
+        markTouchUi()
         if (_uiState.value.screen != Screen.HOME) return
         _uiState.update { it.copy(menuIndex = index) }
         handleHomeInput(PocketButton.A)
     }
 
+    fun onHomeSelectedTouch() {
+        markTouchUi()
+        if (_uiState.value.screen == Screen.HOME) {
+            handleHomeInput(PocketButton.A)
+        }
+    }
+
     fun onHomeIndexTouch(index: Int) {
+        markTouchUi()
         if (_uiState.value.screen == Screen.HOME) {
             _uiState.update { it.copy(menuIndex = index) }
         }
     }
 
     fun onGameIndexTouch(index: Int) {
+        markTouchUi()
         val state = _uiState.value
         if (state.screen !in setOf(Screen.PLATFORM, Screen.RECENTLY_PLAYED, Screen.FAVOURITES)) return
         if (index !in state.games.indices) return
@@ -1399,6 +1458,7 @@ class MainViewModel(
     }
 
     fun onGameTouch(index: Int) {
+        markTouchUi()
         val state = _uiState.value
         if (state.screen !in setOf(Screen.PLATFORM, Screen.RECENTLY_PLAYED, Screen.FAVOURITES)) return
         if (index !in state.games.indices) return
@@ -1410,6 +1470,7 @@ class MainViewModel(
     }
 
     fun onMenuItemTouch(index: Int) {
+        markTouchUi()
         val screen = _uiState.value.screen
         _uiState.update { it.copy(menuIndex = index) }
         when (screen) {
@@ -1423,6 +1484,7 @@ class MainViewModel(
     }
 
     fun onTouchBack() {
+        markTouchUi()
         when (_uiState.value.screen) {
             Screen.PLATFORM -> handlePlatformInput(PocketButton.B)
             Screen.RECENTLY_PLAYED -> handleRecentInput(PocketButton.B)
