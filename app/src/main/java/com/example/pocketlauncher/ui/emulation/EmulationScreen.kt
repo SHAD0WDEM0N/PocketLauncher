@@ -56,6 +56,7 @@ fun EmulationScreen(
     selectedStateThumbnailPath: String?,
     onScreenMenuIconEnabled: Boolean,
     onScreenControlsEnabled: Boolean,
+    physicalControllerInUse: Boolean,
     onMenuIconClick: () -> Unit,
     onTouchControl: (PocketButton, Boolean) -> Unit,
     onMenuItemClick: (Int) -> Unit,
@@ -86,7 +87,7 @@ fun EmulationScreen(
             modifier = Modifier.fillMaxSize(),
         )
 
-        if (onScreenControlsEnabled && !menuOpen) {
+        if (onScreenControlsEnabled && !physicalControllerInUse && !menuOpen) {
             TouchControlsOverlay(
                 onControl = onTouchControl,
                 modifier = Modifier.fillMaxSize(),
@@ -96,7 +97,7 @@ fun EmulationScreen(
         if (onScreenMenuIconEnabled && !menuOpen) {
             Box(
                 modifier = Modifier
-                    .align(if (onScreenControlsEnabled) Alignment.TopStart else Alignment.BottomStart)
+                    .align(if (onScreenControlsEnabled && !physicalControllerInUse) Alignment.TopStart else Alignment.BottomStart)
                     .padding(14.dp)
                     .size(42.dp)
                     .background(Color.Black.copy(alpha = 0.34f), CircleShape)
